@@ -89,6 +89,7 @@
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       letter-spacing: -0.012em;
       overflow-x: hidden;
+      overflow-x: clip; /* clip, unlike hidden, keeps position:sticky working */
       -webkit-font-smoothing: antialiased;
       selection-background-color: #F9E3D7;
     }
@@ -113,58 +114,76 @@
       background: #EC5E27;
     }
 
-    /* Lusion Dual-State Magnetic Cursor */
+    /* ── Ember Comet cursor ─────────────────────────────────────────
+       dot = exact pointer · ring = spring follower that stretches with
+       speed, wraps buttons, morphs into a label pill · canvas = comet
+       trail + click sparks. Fine pointers only; JS adds html.jc-on.   */
+    .jc-dot, .jc-ring, .jc-trail { display: none; }
     @media (pointer: fine) {
-      .lusion-cursor-dot,
-      .lusion-cursor-pill {
-        position: fixed;
-        top: 0;
-        left: 0;
-        pointer-events: none;
-        z-index: 9999;
-        transform: translate(-50%, -50%);
+      html.jc-on, html.jc-on * { cursor: none !important; }
+      .jc-trail {
+        display: block; position: fixed; inset: 0; width: 100vw; height: 100vh;
+        pointer-events: none; z-index: 9997;
       }
-      .lusion-cursor-dot {
-        width: 7px;
-        height: 7px;
+      .jc-dot, .jc-ring {
+        display: block; position: fixed; top: 0; left: 0;
+        pointer-events: none; z-index: 9999;
+        opacity: 0; will-change: transform;
+        transition: opacity .3s ease;
+      }
+      html.jc-visible .jc-dot, html.jc-visible .jc-ring { opacity: 1; }
+      .jc-dot {
+        width: 8px; height: 8px; margin: -4px 0 0 -4px;
+        border-radius: 999px; background: #EC5E27;
+        box-shadow: 0 0 0 2px rgba(244, 243, 239, .9), 0 0 14px 2px rgba(236, 94, 39, .55);
+        transition: opacity .25s ease, width .25s cubic-bezier(.16,1,.3,1), height .25s cubic-bezier(.16,1,.3,1),
+                    margin .25s cubic-bezier(.16,1,.3,1), border-radius .25s ease, background .25s ease;
+      }
+      .jc-ring {
+        width: 40px; height: 40px;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
         border-radius: 999px;
-        background: #111514;
-        transition: transform 0.2s ease, background 0.2s ease, opacity 0.2s ease;
-      }
-      .lusion-cursor-pill {
-        min-width: 40px;
-        height: 40px;
-        padding: 0 12px;
-        border-radius: 999px;
-        border: 1px solid rgba(17, 21, 20, 0.22);
-        background: rgba(244, 243, 239, 0.12);
-        backdrop-filter: blur(8px);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 10px;
-        font-weight: 600;
-        letter-spacing: 0.08em;
-        color: #111514;
-        transition: width 0.32s cubic-bezier(0.16, 1, 0.3, 1),
-                    height 0.32s cubic-bezier(0.16, 1, 0.3, 1),
-                    background 0.28s ease,
-                    border-color 0.28s ease,
-                    color 0.28s ease,
-                    padding 0.28s ease;
-      }
-      body.cursor-labeled .lusion-cursor-pill {
-        height: 44px;
-        padding: 0 18px;
-        background: #111514;
-        border-color: #111514;
+        border: 1.5px solid rgba(236, 94, 39, .75);
+        background: rgba(236, 94, 39, 0);
         color: #F4F3EF;
-        box-shadow: 0 14px 34px -8px rgba(17, 21, 20, 0.35);
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 10.5px; font-weight: 600; letter-spacing: .1em; white-space: nowrap;
+        overflow: hidden;
+        transition: opacity .3s ease,
+                    width .45s cubic-bezier(.16,1,.3,1), height .45s cubic-bezier(.16,1,.3,1),
+                    border-radius .45s cubic-bezier(.16,1,.3,1),
+                    background .3s ease, border-color .3s ease, box-shadow .3s ease;
       }
-      body.cursor-labeled .lusion-cursor-dot {
-        opacity: 0;
+      .jc-ring .jc-label { opacity: 0; transform: translateY(6px); transition: opacity .2s ease, transform .35s cubic-bezier(.16,1,.3,1); }
+      .jc-ring .jc-label-dot {
+        width: 6px; height: 6px; border-radius: 999px; background: #EC5E27; flex: none;
+        opacity: 0; transform: scale(0); transition: opacity .2s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
       }
+      /* state: hovering an element that carries a data-cursor label */
+      html.jc-labeled .jc-ring {
+        height: 46px; padding: 0 18px;
+        background: #111514; border-color: rgba(236, 94, 39, .9);
+        box-shadow: 0 18px 40px -12px rgba(17, 21, 20, .5), 0 0 0 4px rgba(236, 94, 39, .12);
+      }
+      html.jc-labeled .jc-ring .jc-label { opacity: 1; transform: none; transition-delay: .06s; }
+      html.jc-labeled .jc-ring .jc-label-dot { opacity: 1; transform: scale(1); animation: jcPulse 1.4s ease-in-out infinite; }
+      html.jc-labeled .jc-dot { opacity: 0; }
+      /* state: wrapped around a plain button / link */
+      html.jc-snapped .jc-ring {
+        background: rgba(236, 94, 39, .08); border-color: #EC5E27;
+        box-shadow: 0 0 0 5px rgba(236, 94, 39, .08);
+      }
+      html.jc-snapped .jc-dot { width: 4px; height: 4px; margin: -2px 0 0 -2px; }
+      /* state: text field → I-beam */
+      html.jc-text .jc-dot { width: 2px; height: 22px; margin: -11px 0 0 -1px; border-radius: 2px; box-shadow: none; }
+      html.jc-text .jc-ring { opacity: 0 !important; }
+      /* state: mouse held down */
+      html.jc-down .jc-ring { border-color: #EC5E27; background: rgba(236, 94, 39, .16); }
+      @keyframes jcPulse { 50% { box-shadow: 0 0 0 5px rgba(236, 94, 39, 0); } 0%, 100% { box-shadow: 0 0 0 0 rgba(236, 94, 39, .6); } }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .jc-trail { display: none !important; }
+      .jc-ring .jc-label-dot { animation: none !important; }
     }
 
     /* Transparent Floating Top Bar */
@@ -1133,9 +1152,11 @@
       color: #586460;
     }
     .loader-center {
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
       text-align: center;
     }
     .loader-mark {
@@ -1312,6 +1333,114 @@
     /* ========================================================================= */
     /* LUSION-INSPIRED TEAM VIDEO PRODUCTION HUB                                 */
     /* ========================================================================= */
+    /* ── Watch: featured player + playlist (editorial layout) ───────── */
+    .watch-section { background: #10120f; color: #eee9df; padding: clamp(56px, 8vw, 104px) clamp(18px, 4vw, 56px); }
+    .watch-shell { max-width: 1360px; margin: 0 auto; }
+    .watch-head {
+      display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+      padding-bottom: 22px; margin-bottom: 34px; border-bottom: 1px solid rgba(255,255,255,.14);
+    }
+    .watch-eyebrow { font: 600 11px/1 'JetBrains Mono', monospace; letter-spacing: .16em; text-transform: uppercase; color: #EC5E27; margin: 0 0 14px; }
+    .watch-eyebrow span { color: #8c8a83; margin-right: 8px; }
+    .watch-h2 { font: 700 clamp(34px, 5vw, 64px)/1 'Plus Jakarta Sans', 'Inter', sans-serif; letter-spacing: -.035em; margin: 0; color: #fff; }
+    .watch-head-side { display: flex; align-items: center; gap: 18px; }
+    .watch-aside { font: 500 11px/1 'JetBrains Mono', monospace; letter-spacing: .14em; text-transform: uppercase; color: #9d9a92; }
+    .watch-upload {
+      display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.22); background: transparent; color: #eee9df;
+      font: 600 12px/1 'JetBrains Mono', monospace; letter-spacing: .08em; text-transform: uppercase;
+      transition: background .2s ease, border-color .2s ease, color .2s ease;
+    }
+    .watch-upload:hover { background: #EC5E27; border-color: #EC5E27; color: #fff; }
+    .watch-upload:focus-visible, .watch-poster:focus-visible, .watch-item:focus-visible { outline: 2px solid #EC5E27; outline-offset: 3px; }
+
+    .watch-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(360px, .62fr); gap: 34px; align-items: start; }
+    .watch-mobile-title { display: none; }
+    .watch-player-wrap {
+      position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; overflow: hidden;
+      border-radius: 6px; border: 1px solid rgba(255,255,255,.15);
+    }
+    .watch-player-wrap video, .watch-player-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; object-fit: contain; }
+    .watch-player-wrap:not(.is-playing) video { visibility: hidden; }
+    .watch-poster { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: #000; display: block; }
+    .watch-player-wrap.is-playing .watch-poster { display: none; }
+    .watch-poster img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      filter: grayscale(100%) contrast(1.05);
+      transition: filter .45s ease, transform .6s cubic-bezier(.16,1,.3,1), opacity .25s ease;
+    }
+    .watch-poster:hover img, .watch-poster:focus-visible img { filter: none; transform: scale(1.025); }
+    .watch-poster::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgba(0,0,0,.55)); pointer-events: none; }
+    .watch-play {
+      position: absolute; left: 20px; bottom: 20px; z-index: 1;
+      width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center;
+      border: 1px solid rgba(255,255,255,.7); background: rgba(0,0,0,.55); color: #fff; font-size: 20px;
+      transition: background .25s ease, border-color .25s ease, transform .35s cubic-bezier(.34,1.56,.64,1);
+    }
+    .watch-play i { margin-left: 3px; }
+    .watch-poster:hover .watch-play { background: #EC5E27; border-color: #EC5E27; transform: scale(1.08); }
+    .watch-duration {
+      position: absolute; right: 18px; bottom: 22px; z-index: 1; padding: 5px 9px; border-radius: 4px;
+      background: rgba(0,0,0,.65); color: #eee9df; font: 500 11px/1 'JetBrains Mono', monospace; letter-spacing: .06em;
+    }
+    .watch-lead-content { transition: opacity .25s ease, transform .35s cubic-bezier(.16,1,.3,1); }
+    .watch-lead-content.is-swapping { opacity: .3; transform: translateY(4px); }
+    .watch-tag { margin: 16px 0 0; font: 500 11px/1.4 'JetBrains Mono', monospace; letter-spacing: .12em; text-transform: uppercase; color: #bdbbb4; }
+    .watch-tag b { color: #EC5E27; font-weight: 600; }
+    .watch-title { font: 600 clamp(24px, 2.4vw, 32px)/1.2 'Plus Jakarta Sans', 'Inter', sans-serif; letter-spacing: -.02em; margin: 10px 0 8px; color: #fff; }
+    .watch-desc { font: 400 16px/1.6 'Inter', sans-serif; color: #c9cec6; max-width: 780px; margin: 0; }
+
+    .watch-list-meta { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 10px; font: 500 10.5px/1 'JetBrains Mono', monospace; letter-spacing: .12em; text-transform: uppercase; color: #8c8a83; }
+    .watch-list { list-style: none; margin: 0; padding: 0 4px 0 0; max-height: min(620px, 72vh); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.2) transparent; }
+    .watch-item {
+      width: 100%; display: grid; grid-template-columns: 140px 1fr; gap: 16px; align-items: center; text-align: left;
+      padding: 14px 12px; margin-bottom: 6px; border-radius: 6px; color: inherit; background: transparent;
+      border: 1px solid transparent; border-bottom-color: rgba(255,255,255,.14);
+      transition: background .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+    .watch-item:hover { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.22); }
+    .watch-item.is-active { background: rgba(255,255,255,.09); border-color: rgba(236,94,39,.55); box-shadow: inset 3px 0 0 #EC5E27; }
+    .watch-thumb { position: relative; display: block; width: 140px; aspect-ratio: 16 / 9; border-radius: 3px; overflow: hidden; background: #1d201c; }
+    .watch-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; filter: grayscale(100%); transition: filter .25s ease, transform .4s ease; }
+    .watch-item:hover .watch-thumb img, .watch-item.is-active .watch-thumb img { filter: none; }
+    .watch-item:hover .watch-thumb img { transform: scale(1.05); }
+    .watch-thumb-time { position: absolute; right: 5px; bottom: 5px; padding: 2px 5px; border-radius: 3px; background: rgba(0,0,0,.75); font: 500 9.5px/1.2 'JetBrains Mono', monospace; color: #eee9df; }
+    .watch-now { position: absolute; left: 5px; top: 5px; padding: 2px 6px; border-radius: 3px; background: #EC5E27; color: #fff; font: 600 9px/1.3 'JetBrains Mono', monospace; letter-spacing: .08em; display: none; }
+    .watch-item.is-playing-item .watch-now { display: block; }
+    .watch-micro { display: block; font: 500 10.5px/1.35 'JetBrains Mono', monospace; letter-spacing: .1em; text-transform: uppercase; color: #9d9a92; }
+    .watch-item.is-active .watch-micro { color: #EC5E27; }
+    .watch-item h4 { font: 600 17px/1.3 'Plus Jakarta Sans', 'Inter', sans-serif; letter-spacing: -.01em; margin: 6px 0 0; color: #e6e2d9; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .watch-item.is-active h4 { color: #fff; }
+
+    @media (max-width: 1023px) {
+      .watch-grid { grid-template-columns: 1fr; gap: 10px; }
+      .watch-head { margin-bottom: 6px; padding-bottom: 18px; align-items: center; }
+      .watch-eyebrow { margin-bottom: 10px; }
+      .watch-aside { display: none; }
+      .watch-lead {
+        position: sticky; top: var(--watch-sticky-top, 64px); z-index: 5;
+        background: #10120f; padding: 18px 0 14px; margin: 0 -2px 8px;
+        border-bottom: 1px solid rgba(255,255,255,.14);
+        box-shadow: 0 16px 32px rgba(0,0,0,.6);
+      }
+      .watch-mobile-title { display: none; }
+      .watch-count { font: 500 10.5px/1 'JetBrains Mono', monospace; letter-spacing: .12em; text-transform: uppercase; color: #EC5E27; }
+      .watch-desc { display: none; }
+      .watch-title { font-size: 20px; margin-bottom: 0; }
+      .watch-list { max-height: none; overflow: visible; }
+      .watch-list-meta span:last-child { display: none; }
+    }
+    @media (max-width: 480px) {
+      .watch-item { grid-template-columns: 112px 1fr; gap: 12px; padding: 12px 8px; }
+      .watch-thumb { width: 112px; }
+      .watch-item h4 { font-size: 15px; }
+      .watch-play { width: 48px; height: 48px; left: 14px; bottom: 14px; font-size: 17px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .watch-poster img, .watch-thumb img, .watch-lead-content, .watch-play { transition: none; }
+      .watch-poster:hover img, .watch-item:hover .watch-thumb img { transform: none; }
+    }
+
     .lusion-video-section {
       position: relative;
       background: #111514;
@@ -2339,10 +2468,10 @@
 
   <!-- Initial brand loader -->
   <div id="siteLoader" class="site-loader" role="status" aria-label="Loading Jaithraya">
-    <div class="loader-top">
+    <!-- <div class="loader-top">
       <span>Jaithraya · Career Studio</span>
       <span>Visa-friendly job search</span>
-    </div>
+    </div> -->
 
     <div class="loader-center">
       <div class="loader-mark">
@@ -2376,10 +2505,11 @@
   <!-- ===================================================================== -->
   <canvas id="lusionRibbonCanvas" class="fixed inset-0 w-full h-full pointer-events-none z-0"></canvas>
 
-  <!-- CUSTOM LUSION DUAL-STATE MAGNETIC CURSOR -->
-  <div id="lusionCursorDot" class="lusion-cursor-dot hidden md:block"></div>
-  <div id="lusionCursorPill" class="lusion-cursor-pill hidden md:flex">
-    <span id="lusionCursorText"></span>
+  <!-- EMBER COMET CURSOR (decorative; native cursor returns on touch / coarse pointers) -->
+  <canvas id="cursorTrail" class="jc-trail" aria-hidden="true"></canvas>
+  <div id="lusionCursorDot" class="jc-dot" aria-hidden="true"></div>
+  <div id="lusionCursorPill" class="jc-ring" aria-hidden="true">
+    <span class="jc-label-dot"></span><span id="lusionCursorText" class="jc-label"></span>
   </div>
 
   <!-- ===================================================================== -->
@@ -2443,7 +2573,7 @@
       <!-- Top Meta Row -->
       <div class="flex flex-wrap items-center justify-between gap-4 border-b border-stone-300/80 pb-6">
         <div class="font-mono text-xs uppercase tracking-widest text-obsidian-500">
-          [[ 000 // ABOUT THE STUDIO ]]
+          <!-- [[ 000 // ABOUT THE STUDIO ]] -->
         </div>
         <div class="flex items-center gap-6 font-mono text-xs text-obsidian-500">
           <span>58,400+ H-1B &amp; DIRECT ROLES</span>
@@ -2724,7 +2854,7 @@
     <!-- =================================================================== -->
     <section id="jaithraya-difference" class="comparison-section py-28 sm:py-36 px-6 sm:px-10 max-w-[1400px] mx-auto border-t border-stone-300">
       <div class="comparison-intro max-w-3xl mb-14">
-        <div class="font-mono text-xs uppercase tracking-widest text-sage-600 mb-4">[[ 01 // THE DIFFERENCE ]]</div>
+        <!-- <div class="font-mono text-xs uppercase tracking-widest text-sage-600 mb-4">[[ 01 // THE DIFFERENCE ]]</div> -->
         <h2 class="font-display font-bold text-4xl sm:text-6xl text-obsidian-900 leading-[1.04] tracking-tight">
           Less noise.<br /><span class="text-obsidian-500 font-normal">More forward motion.</span>
         </h2>
@@ -2817,7 +2947,7 @@
         <div class="expertise-scroll-header flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-14 border-b border-stone-100/12">
           <div>
             <div class="font-mono text-xs uppercase tracking-widest text-sage-500 mb-3">
-              [[ 02 // AREA OF EXPERTISE ]]
+              <!-- [[ 02 // AREA OF EXPERTISE ]] -->
             </div>
             <h2 class="font-display font-bold text-4xl sm:text-6xl text-stone-50 tracking-tight">
               OUR FOUR PILLARS
@@ -2848,7 +2978,7 @@
             class="expertise-pillar active rounded-3xl border border-stone-100/15 bg-obsidian-800/70 p-7 sm:p-9 flex flex-col justify-between"
           >
             <div class="flex items-start justify-between gap-4">
-              <span class="font-mono text-xs text-sage-500">[[ 001 // PILLAR ]]</span>
+              <!-- <span class="font-mono text-xs text-sage-500">[[ 001 // PILLAR ]]</span> -->
               <span class="px-3 py-1 rounded-full bg-sage-600/20 border border-sage-500/40 font-mono text-[11px] text-sage-100">98.4% PRECISION</span>
             </div>
 
@@ -2890,7 +3020,7 @@
             class="expertise-pillar rounded-3xl border border-stone-100/15 bg-obsidian-800/70 p-7 sm:p-9 flex flex-col justify-between"
           >
             <div class="flex items-start justify-between gap-4">
-              <span class="font-mono text-xs text-terracotta-400">[[ 002 // PILLAR ]]</span>
+              <!-- <span class="font-mono text-xs text-terracotta-400">[[ 002 // PILLAR ]]</span> -->
               <span class="px-3 py-1 rounded-full bg-terracotta-500/20 border border-terracotta-400/40 font-mono text-[11px] text-terracotta-100">6-SECOND ATELIER</span>
             </div>
 
@@ -2930,7 +3060,7 @@
             class="expertise-pillar rounded-3xl border border-stone-100/15 bg-obsidian-800/70 p-7 sm:p-9 flex flex-col justify-between"
           >
             <div class="flex items-start justify-between gap-4">
-              <span class="font-mono text-xs text-sage-500">[[ 003 // PILLAR ]]</span>
+              <!-- <span class="font-mono text-xs text-sage-500">[[ 003 // PILLAR ]]</span> -->
               <span class="px-3 py-1 rounded-full bg-sage-600/20 border border-sage-500/40 font-mono text-[11px] text-sage-100">0.8S SUBMISSION</span>
             </div>
 
@@ -2970,7 +3100,7 @@
             class="expertise-pillar rounded-3xl border border-stone-100/15 bg-obsidian-800/70 p-7 sm:p-9 flex flex-col justify-between"
           >
             <div class="flex items-start justify-between gap-4">
-              <span class="font-mono text-xs text-terracotta-400">[[ 004 // PILLAR ]]</span>
+              <!-- <span class="font-mono text-xs text-terracotta-400">[[ 004 // PILLAR ]]</span> -->
               <span class="px-3 py-1 rounded-full bg-terracotta-500/20 border border-terracotta-400/40 font-mono text-[11px] text-terracotta-100">4.2× CALLBACK LIFT</span>
             </div>
 
@@ -3017,7 +3147,7 @@
     <section id="jaithraya-pricing" class="pricing-section py-28 sm:py-36 px-6 sm:px-10 border-t border-stone-300">
       <div class="max-w-[1400px] mx-auto">
         <div class="pricing-intro max-w-3xl">
-          <div class="font-mono text-xs uppercase tracking-widest text-sage-600 mb-4">[[ 03 // SIMPLE PRICING · CANCEL ANY TIME ]]</div>
+          <!-- <div class="font-mono text-xs uppercase tracking-widest text-sage-600 mb-4">[[ 03 // SIMPLE PRICING · CANCEL ANY TIME ]]</div> -->
           <h2 class="font-display font-bold text-4xl sm:text-6xl text-obsidian-900 leading-[1.04] tracking-tight">
             Pick how much<br /><span class="text-obsidian-500 font-normal">of your race we run.</span>
           </h2>
@@ -3109,187 +3239,56 @@
     <!-- SECTION: LUSION-INSPIRED TEAM VIDEO STUDIO REEL                     -->
     <!-- (Direct Team Uploads, Spatial 3D Perspective & Cinematic Playback)  -->
     <!-- =================================================================== -->
-    <section id="team-video-hub" class="lusion-video-section py-28 sm:py-36 rounded-[36px] sm:rounded-[52px] mx-3 sm:mx-6 px-6 sm:px-12 my-12 shadow-2xl">
-      <div class="max-w-[1360px] mx-auto">
+    <section id="team-video-hub" class="watch-section rounded-[36px] sm:rounded-[52px] mx-3 sm:mx-6 my-12" aria-labelledby="watchHeading">
+      <div class="watch-shell">
 
-        <!-- Top Header & Meta Control Row -->
-        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-8 pb-12 border-b border-stone-100/12">
+        <div class="watch-head">
           <div>
-            <div class="font-mono text-xs uppercase tracking-widest text-sage-500 mb-3 flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-sage-500 animate-ping"></span>
-              <span>[[ 04 // TEAM PRODUCTIONS &amp; ARCHITECTURE REEL ]]</span>
-            </div>
-            <h2 class="font-display font-bold text-4xl sm:text-6xl text-stone-50 tracking-tight leading-[1.02]">
-              CRAFTED IN MOTION.
-            </h2>
-            <p class="mt-4 text-base text-stone-300 max-w-2xl leading-relaxed">
-              Watch firsthand as our studio engineers calibrate resumes, map verified H-1B filings, and build 60fps autonomous job workflows. Team uploads are broadcast directly to this live reel.
-            </p>
+            <p class="watch-eyebrow"><span aria-hidden="true">04</span> Watch</p>
+            <h2 id="watchHeading" class="watch-h2">Video conversations</h2>
           </div>
-
-          <!-- Actions: Team Upload Trigger + Mode Indicator -->
-          <div class="flex flex-wrap items-center gap-4">
-            <div class="hidden sm:flex items-center gap-2.5 px-4 py-2 rounded-full border border-stone-100/15 bg-obsidian-800/80 font-mono text-xs text-stone-300">
-              <div class="video-soundwaves" aria-hidden="true">
-                <span class="soundwave-bar"></span>
-                <span class="soundwave-bar"></span>
-                <span class="soundwave-bar"></span>
-                <span class="soundwave-bar"></span>
-                <span class="soundwave-bar"></span>
-              </div>
-              <span id="activeVideoFormatTag">4K UHD · 60FPS</span>
-            </div>
-
-            <button
-              onclick="openTeamVideoUploadModal()"
-              data-cursor="UPLOAD VIDEO +"
-              class="px-6 py-3.5 rounded-full bg-sage-600 hover:bg-sage-500 text-stone-50 font-mono text-xs uppercase tracking-wider transition flex items-center gap-2.5 shadow-lg group"
-            >
-              <i class="ph-bold ph-video-camera text-base group-hover:scale-110 transition-transform"></i>
-              <span>Upload Team Video</span>
-              <span class="px-2 py-0.5 rounded-full bg-sage-800 text-[10px] text-sage-200">+</span>
+          <div class="watch-head-side">
+            <span class="watch-aside">From the Jaithraya team</span>
+            <button type="button" class="watch-upload" onclick="openTeamVideoUploadModal()" data-cursor="UPLOAD +">
+              <i class="ph-bold ph-upload-simple" aria-hidden="true"></i><span>Upload video</span>
             </button>
           </div>
         </div>
 
-        <!-- Central 3D Perspective Cinematic Video Frame (Inspired by Lusion.co Reels) -->
-        <div class="lusion-video-stage mt-12">
-          <div id="teamVideoFrame" class="lusion-video-frame relative">
-            
-            <!-- Ambient Dynamic Reactive Glow -->
-            <div class="video-glow-ambient" id="videoGlowAmbient"></div>
-
-            <!-- Video Player Surface -->
-            <div class="video-element-container relative" id="videoContainer">
-              
-              <!-- Video Element with Fallback Poster -->
-              <video
-                id="teamMainVideo"
-                class="w-full h-full object-cover"
-                playsinline
-                preload="metadata"
-                poster="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1600&q=80"
-              >
-                <source id="teamVideoSource" src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
-                Your browser does not support HTML5 video playback.
+        <div class="watch-grid">
+          <!-- Featured player: poster first, real player only after Play -->
+          <div class="watch-lead" id="teamVideoFrame">
+            <div class="watch-mobile-title" aria-hidden="true">
+              <span>Video conversations</span><span id="teamVideoCountTagMobile" class="watch-count"></span>
+            </div>
+            <div class="watch-player-wrap" id="watchPlayerWrap">
+              <video id="teamMainVideo" playsinline preload="none" controls>
+                <source id="teamVideoSource" src="" type="video/mp4">
               </video>
-
-              <!-- Cyber / Particle Mesh Canvas Overlay (Lusion Aesthetic) -->
-              <canvas id="videoMeshCanvas" class="video-mesh-canvas"></canvas>
-
-              <!-- Cinematic Vignette & Edge Shadow Overlay -->
-              <div class="video-cinematic-overlay"></div>
-
-              <!-- Top Floating Video Metadata HUD -->
-              <div class="absolute top-6 inset-x-6 sm:inset-x-8 z-10 flex items-center justify-between pointer-events-none">
-                <div class="flex items-center gap-3">
-                  <span class="px-3.5 py-1.5 rounded-full bg-obsidian-950/80 backdrop-blur-md border border-stone-100/15 font-mono text-[11px] text-sage-400 flex items-center gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-sage-400 animate-pulse"></span>
-                    <span id="videoHudStatus">STUDIO STREAM ACTIVE</span>
-                  </span>
-                  <span id="videoHudCategory" class="hidden md:inline px-3 py-1.5 rounded-full bg-obsidian-950/60 backdrop-blur-md border border-stone-100/10 font-mono text-[11px] text-stone-300">
-                    AI Systems &amp; Architecture
-                  </span>
-                </div>
-
-                <div class="flex items-center gap-2 font-mono text-xs text-stone-300">
-                  <span id="videoHudSpeaker" class="px-3 py-1.5 rounded-full bg-obsidian-950/80 backdrop-blur-md border border-stone-100/15">
-                    Lead AI Architect @ Jaithraya
-                  </span>
-                </div>
-              </div>
-
-              <!-- Center Big Magnetic Play Disc -->
-              <div class="video-center-trigger" onclick="toggleMainVideoPlay()">
-                <div id="videoCenterPlayBtn" class="video-play-disc" data-cursor="PLAY / PAUSE">
-                  <i id="centerPlayIcon" class="ph-fill ph-play text-3xl ml-1 text-stone-100"></i>
-                </div>
-              </div>
-
-              <!-- Bottom Custom Lusion Minimal Video Controls Bar -->
-              <div class="absolute bottom-0 inset-x-0 z-20 px-6 sm:px-8 pb-6 pt-12 bg-gradient-to-t from-obsidian-950 via-obsidian-950/80 to-transparent">
-                
-                <!-- Timeline Scrub Track -->
-                <div
-                  id="videoTimelineScrub"
-                  class="video-timeline-scrub mb-4 rounded-full overflow-hidden"
-                  onclick="seekMainVideo(event)"
-                  data-cursor="SEEK"
-                >
-                  <div id="videoTimelineFill" class="video-timeline-fill"></div>
-                </div>
-
-                <!-- Bottom Controls Strip -->
-                <div class="flex items-center justify-between gap-4">
-                  <!-- Left: Play/Pause + Time Display -->
-                  <div class="flex items-center gap-4">
-                    <button
-                      onclick="toggleMainVideoPlay()"
-                      class="w-10 h-10 rounded-full bg-stone-100/10 hover:bg-stone-100/20 text-stone-100 flex items-center justify-center transition"
-                      data-cursor="TOGGLE"
-                      aria-label="Play or pause"
-                    >
-                      <i id="ctrlPlayIcon" class="ph-fill ph-play text-lg"></i>
-                    </button>
-
-                    <div class="font-mono text-xs text-stone-300 flex items-center gap-1.5">
-                      <span id="videoTimeCurrent">00:00</span>
-                      <span class="text-stone-600">/</span>
-                      <span id="videoTimeDuration">03:42</span>
-                    </div>
-
-                    <div class="hidden sm:block text-stone-600 font-mono text-xs">|</div>
-
-                    <div id="videoCurrentTitle" class="hidden sm:block font-display font-medium text-sm text-stone-100 truncate max-w-[280px] lg:max-w-[420px]">
-                      Team Architecture: 6-Second ATS Calibrator Deep Dive
-                    </div>
-                  </div>
-
-                  <!-- Right: Mute/Volume + Fullscreen + Resolution -->
-                  <div class="flex items-center gap-3">
-                    <button
-                      onclick="toggleMainVideoMute()"
-                      class="w-10 h-10 rounded-full bg-stone-100/10 hover:bg-stone-100/20 text-stone-100 flex items-center justify-center transition"
-                      data-cursor="AUDIO"
-                      aria-label="Toggle sound"
-                    >
-                      <i id="ctrlVolumeIcon" class="ph-bold ph-speaker-simple-high text-lg"></i>
-                    </button>
-
-                    <button
-                      onclick="toggleMainVideoFullscreen()"
-                      class="w-10 h-10 rounded-full bg-stone-100/10 hover:bg-stone-100/20 text-stone-100 flex items-center justify-center transition"
-                      data-cursor="THEATER"
-                      aria-label="Toggle fullscreen"
-                    >
-                      <i class="ph-bold ph-corners-out text-lg"></i>
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-
+              <iframe id="watchYoutube" title="Jaithraya video" hidden
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+              <button type="button" class="watch-poster" id="watchPoster" onclick="playCurrentVideo()" data-cursor="PLAY ▶">
+                <img id="watchPosterImg" src="" alt="">
+                <span class="watch-play" aria-hidden="true"><i class="ph-fill ph-play"></i></span>
+                <span class="watch-duration" id="watchDuration"></span>
+                <span class="sr-only" id="watchPlayLabel">Play video</span>
+              </button>
             </div>
-
-          </div>
-        </div>
-
-        <!-- Video Reel Gallery & Switcher Strip -->
-        <div class="mt-12 pt-8 border-t border-stone-100/10">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 font-mono text-xs text-stone-400">
-            <div class="flex items-center gap-3">
-              <span class="text-sage-400 uppercase tracking-wider">[[ STUDIO REEL ARCHIVE ]]</span>
-              <span>•</span>
-              <span id="teamVideoCountTag">004 PRODUCTIONS</span>
-            </div>
-            <div class="text-[11px] text-stone-500 uppercase tracking-widest">
-              SELECT ANY REEL TO PLAY OR UPLOAD YOUR OWN
+            <div class="watch-lead-content" id="watchLeadContent" aria-live="polite">
+              <p class="watch-tag" id="watchTag"></p>
+              <h3 class="watch-title" id="watchTitle"></h3>
+              <p class="watch-desc" id="watchDesc"></p>
             </div>
           </div>
 
-          <!-- Video Carousel Grid Container -->
-          <div id="teamVideoGalleryGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            <!-- Dynamically populated by JS -->
+          <!-- Playlist: hover / focus previews, click plays -->
+          <div class="watch-list-wrap">
+            <div class="watch-list-meta">
+              <span id="teamVideoCountTag">0 videos</span>
+              <span>Hover to preview · click to play</span>
+            </div>
+            <ol class="watch-list" id="teamVideoGalleryGrid" data-lenis-prevent></ol>
           </div>
         </div>
 
@@ -3399,7 +3398,7 @@
     <section id="offer-wall" class="offer-wall" aria-labelledby="offerWallTitle">
       <div class="offer-head">
         <div>
-          <div class="font-mono text-xs uppercase tracking-widest text-sage-600 mb-4">[[ 05 // OFFER WALL ]]</div>
+          <!-- <div class="font-mono text-xs uppercase tracking-widest text-sage-600 mb-4">[[ 05 // OFFER WALL ]]</div> -->
           <h2 id="offerWallTitle" class="font-display font-bold text-4xl sm:text-6xl text-obsidian-900 leading-[1.04] tracking-tight">
             The day the<br /><span class="text-obsidian-500 font-normal">answer was yes.</span>
           </h2>
@@ -3514,7 +3513,7 @@
     <footer class="pt-20 pb-24 px-6 sm:px-10 max-w-[1400px] mx-auto border-t border-stone-300">
       <div class="portal-footer rounded-[40px] border p-10 sm:p-16 lg:p-20 text-center">
         <div class="font-mono text-xs uppercase tracking-widest text-sage-500 mb-4">
-          [[ 06 // NEXT CHAPTER · FAST-TRACK CALIBRATION ]]
+          <!-- [[ 06 // NEXT CHAPTER · FAST-TRACK CALIBRATION ]] -->
         </div>
 
         <div
@@ -3803,54 +3802,236 @@
       }
     }
 
-    // Dual-State Magnetic Cursor
-    const cursorDot = document.getElementById('lusionCursorDot');
-    const cursorPill = document.getElementById('lusionCursorPill');
-    const cursorText = document.getElementById('lusionCursorText');
+    // Ember Comet cursor — see CSS block of the same name.
+    // mouseX / mouseY stay global: the background ribbon reads them.
     let mouseX = window.innerWidth / 2;
     let mouseY = window.innerHeight / 2;
-    let pillX = mouseX;
-    let pillY = mouseY;
-    let mouseVelX = 0;
-    let mouseVelY = 0;
+    (function setupEmberCursor() {
+      const dot = document.getElementById('lusionCursorDot');
+      const ring = document.getElementById('lusionCursorPill');
+      const label = document.getElementById('lusionCursorText');
+      const trail = document.getElementById('cursorTrail');
+      const root = document.documentElement;
+      if (!dot || !ring || !label || !window.matchMedia('(pointer: fine)').matches) return;
+      root.classList.add('jc-on');
+      const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const ctx = !calm && trail ? trail.getContext('2d') : null;
+      const ORANGE = '236, 94, 39';
+      const GLYPHS = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789/#+*';
+      const TEXT_SEL = 'input:not([type=button]):not([type=submit]):not([type=checkbox]):not([type=radio]):not([type=range]), textarea, select, [contenteditable="true"]';
+      const HIT_SEL = 'a, button, [role="button"], [role="tab"], [role="option"], label, summary, [data-cursor]';
 
-    window.addEventListener('mousemove', (e) => {
-      mouseVelX = e.clientX - mouseX;
-      mouseVelY = e.clientY - mouseY;
-      mouseX = e.clientX;
-      mouseY = e.clientY;
-      if (cursorDot) {
-        cursorDot.style.left = mouseX + 'px';
-        cursorDot.style.top = mouseY + 'px';
-      }
-    });
+      // ring spring state
+      let rx = mouseX, ry = mouseY, vx = 0, vy = 0;
+      let lastX = mouseX, lastY = mouseY, speed = 0, angle = 0;
+      let target = null, snapRect = null, labeled = false, magnetEl = null;
+      let magX = 0, magY = 0;
+      const points = [];   // trail samples {x, y, t}
+      const sparks = [];   // click particles
+      const ripples = [];
+      let W = 0, H = 0, dpr = 1;
 
-    function animateMagneticCursor() {
-      pillX += (mouseX - pillX) * 0.14;
-      pillY += (mouseY - pillY) * 0.14;
-      if (cursorPill) {
-        cursorPill.style.left = pillX + 'px';
-        cursorPill.style.top = pillY + 'px';
-      }
-      mouseVelX *= 0.9;
-      mouseVelY *= 0.9;
-      requestAnimationFrame(animateMagneticCursor);
-    }
-    animateMagneticCursor();
+      const resize = () => {
+        if (!ctx) return;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        W = window.innerWidth; H = window.innerHeight;
+        trail.width = W * dpr; trail.height = H * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      };
+      resize();
+      window.addEventListener('resize', resize);
 
-    function bindCursorLabels() {
-      document.querySelectorAll('[data-cursor]').forEach(el => {
-        el.addEventListener('mouseenter', () => {
-          const label = el.getAttribute('data-cursor') || '';
-          cursorText.innerText = label;
-          document.body.classList.add('cursor-labeled');
-        });
-        el.addEventListener('mouseleave', () => {
-          cursorText.innerText = '';
-          document.body.classList.remove('cursor-labeled');
-        });
-      });
-    }
+      // ── label scramble ────────────────────────────────────────────
+      let scrambleId = 0;
+      const scramble = (text) => {
+        const id = ++scrambleId;
+        if (calm) { label.textContent = text; return; }
+        const start = performance.now(), dur = 380;
+        const step = (now) => {
+          if (id !== scrambleId) return;
+          const p = Math.min(1, (now - start) / dur);
+          const fixed = Math.floor(p * text.length);
+          let out = text.slice(0, fixed);
+          for (let i = fixed; i < text.length; i++) {
+            out += text[i] === ' ' ? ' ' : GLYPHS[(Math.random() * GLYPHS.length) | 0];
+          }
+          label.textContent = out;
+          if (p < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      };
+
+      const sizeRingForLabel = (text) => {
+        label.textContent = text;              // measure final width first
+        const w = label.getBoundingClientRect().width;
+        ring.style.width = Math.ceil(w + 6 + 8 + 36) + 'px';
+        scramble(text);
+      };
+
+      const releaseMagnet = () => {
+        if (!magnetEl) return;
+        const el = magnetEl;
+        magnetEl = null;
+        el.style.transition = (el.style.transition ? el.style.transition + ', ' : '') + 'translate .5s cubic-bezier(.16,1,.3,1)';
+        el.style.translate = '';
+        setTimeout(() => { el.style.transition = el.style.transition.replace(/,?\s*translate \.5s cubic-bezier\(\.16,1,\.3,1\)/, ''); }, 520);
+      };
+
+      const setTarget = (el) => {
+        if (el === target) return;
+        target = el;
+        releaseMagnet();
+        root.classList.remove('jc-labeled', 'jc-snapped', 'jc-text');
+        ring.style.width = ''; ring.style.height = ''; ring.style.borderRadius = '';
+        snapRect = null; labeled = false;
+        if (!el) { scrambleId++; label.textContent = ''; return; }
+        if (el.matches(TEXT_SEL)) { root.classList.add('jc-text'); return; }
+        const text = el.getAttribute('data-cursor');
+        if (text) {
+          labeled = true;
+          root.classList.add('jc-labeled');
+          sizeRingForLabel(text.trim());
+        } else {
+          const r = el.getBoundingClientRect();
+          if (r.width < 320 && r.height < 120) {
+            snapRect = el;
+            root.classList.add('jc-snapped');
+            const radius = parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0;
+            ring.style.width = (r.width + 14) + 'px';
+            ring.style.height = (r.height + 14) + 'px';
+            ring.style.borderRadius = Math.min(radius + 7, (r.height + 14) / 2) + 'px';
+          }
+        }
+        // magnetic pull for small controls (CSS `translate` stacks with any GSAP transform)
+        const r = el.getBoundingClientRect();
+        if (!calm && r.width < 260 && r.height < 90 && !el.closest('.deck-stage')) magnetEl = el;
+      };
+
+      document.addEventListener('pointerover', (e) => {
+        if (e.pointerType && e.pointerType !== 'mouse') return;
+        const t = e.target instanceof Element ? e.target : null;
+        setTarget(t ? (t.closest(TEXT_SEL) || t.closest(HIT_SEL)) : null);
+      }, { passive: true });
+
+      window.addEventListener('pointermove', (e) => {
+        if (e.pointerType && e.pointerType !== 'mouse') return;
+        mouseX = e.clientX; mouseY = e.clientY;
+        root.classList.add('jc-visible');
+        if (ctx) points.push({ x: mouseX, y: mouseY, t: performance.now() });
+      }, { passive: true });
+
+      document.addEventListener('mouseleave', () => root.classList.remove('jc-visible'));
+      document.addEventListener('mouseenter', () => root.classList.add('jc-visible'));
+      window.addEventListener('blur', () => root.classList.remove('jc-visible'));
+      // when the page scrolls under a still mouse, re-check what's under it
+      window.addEventListener('scroll', () => {
+        if (!target) return;
+        const el = document.elementFromPoint(mouseX, mouseY);
+        if (!el || !target.contains(el)) setTarget(el ? (el.closest(TEXT_SEL) || el.closest(HIT_SEL)) : null);
+      }, { passive: true });
+
+      window.addEventListener('pointerdown', (e) => {
+        if (e.pointerType && e.pointerType !== 'mouse') return;
+        root.classList.add('jc-down');
+        if (!ctx) return;
+        for (let i = 0; i < 14; i++) {
+          const a = (Math.PI * 2 * i) / 14 + Math.random() * 0.4;
+          const v = 2.2 + Math.random() * 3.2;
+          sparks.push({ x: e.clientX, y: e.clientY, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, len: 4 + Math.random() * 7, dark: i % 4 === 0 });
+        }
+        ripples.push({ x: e.clientX, y: e.clientY, life: 1 });
+      }, { passive: true });
+      window.addEventListener('pointerup', () => root.classList.remove('jc-down'), { passive: true });
+
+      // ── frame loop ───────────────────────────────────────────────
+      let prev = performance.now();
+      const frame = (now) => {
+        const dt = Math.min(2.5, (now - prev) / 16.667);
+        prev = now;
+
+        // goal for the ring: pointer, or centre of the wrapped control
+        let gx = mouseX, gy = mouseY;
+        if (snapRect && snapRect.isConnected) {
+          const r = snapRect.getBoundingClientRect();
+          gx = r.left + r.width / 2 + (mouseX - (r.left + r.width / 2)) * 0.12;
+          gy = r.top + r.height / 2 + (mouseY - (r.top + r.height / 2)) * 0.12;
+        }
+        if (calm) { rx = gx; ry = gy; }
+        else {
+          // under-damped spring → a tiny elastic overshoot
+          const k = snapRect ? 0.2 : 0.14, damp = snapRect ? 0.62 : 0.68;
+          vx = (vx + (gx - rx) * k * dt) * Math.pow(damp, dt);
+          vy = (vy + (gy - ry) * k * dt) * Math.pow(damp, dt);
+          rx += vx * dt; ry += vy * dt;
+        }
+
+        // speed & heading drive the liquid stretch
+        const dx = mouseX - lastX, dy = mouseY - lastY;
+        lastX = mouseX; lastY = mouseY;
+        const inst = Math.hypot(dx, dy) / dt;
+        speed += (inst - speed) * 0.2;
+        if (inst > 0.6) angle = Math.atan2(dy, dx);
+        const stretch = calm || labeled || snapRect ? 0 : Math.min(speed / 60, 0.5);
+        const press = root.classList.contains('jc-down') ? 0.82 : 1;
+
+        ring.style.transform =
+          `translate3d(${rx}px, ${ry}px, 0) translate(-50%, -50%) rotate(${angle}rad) scale(${(1 + stretch) * press}, ${(1 - stretch * 0.45) * press}) rotate(${-angle}rad)`;
+        dot.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0)`;
+
+        // magnetic pull on the hovered control
+        if (magnetEl) {
+          const r = magnetEl.getBoundingClientRect();
+          const cx = r.left + r.width / 2 - magX, cy = r.top + r.height / 2 - magY;
+          magX += ((mouseX - cx) * 0.22 - magX) * 0.2 * dt;
+          magY += ((mouseY - cy) * 0.22 - magY) * 0.2 * dt;
+          magnetEl.style.translate = `${magX.toFixed(2)}px ${magY.toFixed(2)}px`;
+        } else { magX = 0; magY = 0; }
+
+        // comet trail + sparks
+        if (ctx) {
+          ctx.clearRect(0, 0, W, H);
+          while (points.length && now - points[0].t > 280) points.shift();
+          if (points.length > 2 && !root.classList.contains('jc-text')) {
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            for (let i = 1; i < points.length; i++) {
+              const a = points[i - 1], b = points[i];
+              const life = 1 - (now - b.t) / 280;          // 1 = newest
+              const pos = i / points.length;
+              ctx.strokeStyle = `rgba(${ORANGE}, ${(life * pos * 0.55).toFixed(3)})`;
+              ctx.lineWidth = 0.6 + pos * life * 6.5;
+              ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+            }
+          }
+          for (let i = ripples.length - 1; i >= 0; i--) {
+            const r = ripples[i];
+            r.life -= 0.035 * dt;
+            if (r.life <= 0) { ripples.splice(i, 1); continue; }
+            ctx.strokeStyle = `rgba(${ORANGE}, ${(r.life * 0.7).toFixed(3)})`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(r.x, r.y, 10 + (1 - r.life) * 58, 0, Math.PI * 2); ctx.stroke();
+          }
+          for (let i = sparks.length - 1; i >= 0; i--) {
+            const p = sparks[i];
+            p.life -= 0.03 * dt;
+            if (p.life <= 0) { sparks.splice(i, 1); continue; }
+            p.x += p.vx * dt; p.y += p.vy * dt;
+            p.vx *= Math.pow(0.92, dt); p.vy = p.vy * Math.pow(0.92, dt) + 0.12 * dt;
+            const m = Math.hypot(p.vx, p.vy) || 1;
+            ctx.strokeStyle = p.dark ? `rgba(17, 21, 20, ${p.life.toFixed(3)})` : `rgba(${ORANGE}, ${p.life.toFixed(3)})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x - (p.vx / m) * p.len * p.life, p.y - (p.vy / m) * p.len * p.life);
+            ctx.stroke();
+          }
+        }
+        requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    })();
+
+    // Labels are handled by delegated pointerover in setupEmberCursor; kept for existing callers.
+    function bindCursorLabels() {}
 
     function setupFooterParticleField() {
       const canvas = document.getElementById('footerParticleCanvas');
@@ -5163,125 +5344,144 @@
     let selectedVideoFileBlob = null;
     let isVideoMuted = false;
 
+    // Featured player + playlist. A video may carry `youtube: '<id>'` instead of `src`.
+    const escHtml = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const videoThumb = (vid, big) => vid.youtube
+      ? `https://i.ytimg.com/vi/${vid.youtube}/${big ? 'maxresdefault' : 'hqdefault'}.jpg`
+      : vid.poster;
+    let playingVideoIdx = -1;
+
     function renderTeamVideoGallery() {
-      const container = document.getElementById('teamVideoGalleryGrid');
+      const list = document.getElementById('teamVideoGalleryGrid');
+      const n = teamVideos.length;
+      const countText = `${n} video${n === 1 ? '' : 's'}`;
       const countTag = document.getElementById('teamVideoCountTag');
-      if (countTag) countTag.innerText = `00${teamVideos.length} PRODUCTIONS`;
-      if (!container) return;
+      const countMobile = document.getElementById('teamVideoCountTagMobile');
+      if (countTag) countTag.textContent = countText;
+      if (countMobile) countMobile.textContent = countText;
+      if (!list) return;
 
-      container.innerHTML = teamVideos.map((vid, idx) => {
-        const isActive = idx === activeVideoIdx;
-        return `
-          <div
-            onclick="selectTeamVideo(${idx})"
-            data-cursor="PLAY REEL"
-            class="video-card-thumb ${isActive ? 'is-active ring-1 ring-sage-500' : ''} p-5 flex flex-col justify-between group"
-          >
-            <!-- Thumbnail Visual Header -->
-            <div class="relative w-full aspect-video rounded-xl overflow-hidden mb-4 bg-obsidian-950 border border-stone-100/10">
-              <img src="${vid.poster}" alt="${vid.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              <div class="absolute inset-0 bg-obsidian-950/40 group-hover:bg-obsidian-950/20 transition-colors"></div>
-              
-              <!-- Duration Badge -->
-              <span class="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-md bg-obsidian-950/85 font-mono text-[10px] text-stone-200 border border-stone-100/10">
-                ${vid.duration}
-              </span>
-
-              <!-- Active Play Marker -->
-              ${isActive ? `
-                <div class="absolute inset-0 flex items-center justify-center bg-sage-900/60 backdrop-blur-[2px]">
-                  <span class="w-10 h-10 rounded-full bg-sage-600 text-stone-50 flex items-center justify-center shadow-lg animate-pulse">
-                    <i class="ph-fill ph-play text-lg ml-0.5"></i>
-                  </span>
-                </div>
-              ` : `
-                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span class="w-9 h-9 rounded-full bg-stone-50/80 text-obsidian-900 flex items-center justify-center shadow-lg">
-                    <i class="ph-fill ph-play text-base ml-0.5"></i>
-                  </span>
-                </div>
-              `}
-            </div>
-
-            <!-- Meta Information -->
-            <div>
-              <div class="flex items-center justify-between text-[10px] font-mono text-sage-400 uppercase tracking-wider mb-1.5">
-                <span>[[ ${idx < 9 ? '00' + (idx + 1) : '0' + (idx + 1)} ]]</span>
-                <span>${vid.format.split('·')[0].trim()}</span>
-              </div>
-              <h4 class="font-display font-semibold text-sm text-stone-100 leading-snug line-clamp-2 group-hover:text-sage-300 transition-colors">
-                ${vid.title}
-              </h4>
-              <p class="font-mono text-[11px] text-stone-400 mt-2 truncate">
-                ${vid.speaker}
-              </p>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      bindCursorLabels();
+      list.innerHTML = teamVideos.map((vid, idx) => `
+        <li>
+          <button type="button" class="watch-item${idx === activeVideoIdx ? ' is-active' : ''}${idx === playingVideoIdx ? ' is-playing-item' : ''}"
+            data-idx="${idx}" aria-current="${idx === activeVideoIdx ? 'true' : 'false'}" data-cursor="PLAY ▶">
+            <span class="watch-thumb">
+              <img loading="lazy" src="${escHtml(videoThumb(vid))}" alt="">
+              <span class="watch-thumb-time">${escHtml(vid.duration)}</span>
+              <span class="watch-now">NOW PLAYING</span>
+            </span>
+            <span>
+              <span class="watch-micro">${escHtml(vid.category)}</span>
+              <h4>${escHtml(vid.title)}</h4>
+            </span>
+          </button>
+        </li>`).join('');
     }
 
-    function selectTeamVideo(idx) {
+    function syncPlaylistState() {
+      document.querySelectorAll('#teamVideoGalleryGrid .watch-item').forEach((el) => {
+        const i = Number(el.dataset.idx);
+        el.classList.toggle('is-active', i === activeVideoIdx);
+        el.classList.toggle('is-playing-item', i === playingVideoIdx);
+        el.setAttribute('aria-current', i === activeVideoIdx ? 'true' : 'false');
+      });
+    }
+
+    function stopMainVideo() {
+      const wrap = document.getElementById('watchPlayerWrap');
+      const videoEl = document.getElementById('teamMainVideo');
+      const yt = document.getElementById('watchYoutube');
+      videoEl?.pause();
+      if (yt && !yt.hidden) { yt.src = 'about:blank'; yt.hidden = true; }
+      wrap?.classList.remove('is-playing');
+      playingVideoIdx = -1;
+    }
+
+    // Show a video in the featured slot. play=false → preview (poster + text only).
+    function selectTeamVideo(idx, play = true) {
       if (idx < 0 || idx >= teamVideos.length) return;
+      if (idx === activeVideoIdx && !play && document.getElementById('watchTitle')?.textContent) return;
+      const changed = idx !== activeVideoIdx;
+      const wasPlaying = playingVideoIdx !== -1;
       activeVideoIdx = idx;
       const vid = teamVideos[idx];
-      playSubtleChime(600 + idx * 35, 0.05);
 
-      const videoEl = document.getElementById('teamMainVideo');
-      const sourceEl = document.getElementById('teamVideoSource');
-      const titleEl = document.getElementById('videoCurrentTitle');
-      const categoryEl = document.getElementById('videoHudCategory');
-      const speakerEl = document.getElementById('videoHudSpeaker');
-      const formatTag = document.getElementById('activeVideoFormatTag');
-      const timeDurationEl = document.getElementById('videoTimeDuration');
-
-      if (sourceEl && videoEl) {
-        sourceEl.src = vid.src;
-        videoEl.poster = vid.poster;
-        videoEl.load();
-        videoEl.play().catch(() => {});
+      const content = document.getElementById('watchLeadContent');
+      const img = document.getElementById('watchPosterImg');
+      const apply = () => {
+        document.getElementById('watchTag').innerHTML = `<b>${escHtml(vid.category)}</b> · ${escHtml(vid.speaker)}`;
+        document.getElementById('watchTitle').textContent = vid.title;
+        document.getElementById('watchDesc').textContent = vid.desc;
+        document.getElementById('watchDuration').textContent = vid.duration;
+        document.getElementById('watchPlayLabel').textContent = `Play video: ${vid.title}`;
+        content?.classList.remove('is-swapping');
+      };
+      if (changed && content) { content.classList.add('is-swapping'); setTimeout(apply, 120); } else apply();
+      if (img) {
+        img.style.opacity = changed ? '0.35' : '1';
+        img.onerror = vid.youtube ? () => { img.onerror = null; img.src = videoThumb(vid, false); } : null;
+        img.src = videoThumb(vid, true);
+        img.alt = vid.title;
+        img.onload = () => { img.style.opacity = '1'; };
       }
 
-      if (titleEl) titleEl.innerText = vid.title;
-      if (categoryEl) categoryEl.innerText = vid.category;
-      if (speakerEl) speakerEl.innerText = vid.speaker;
-      if (formatTag) formatTag.innerText = vid.format;
-      if (timeDurationEl) timeDurationEl.innerText = vid.duration;
+      if (changed && wasPlaying && !play) stopMainVideo();
+      if (play) playCurrentVideo();
+      syncPlaylistState();
+    }
 
-      updateVideoPlayButtonState(true);
-      renderTeamVideoGallery();
+    function playCurrentVideo() {
+      const vid = teamVideos[activeVideoIdx];
+      const wrap = document.getElementById('watchPlayerWrap');
+      const videoEl = document.getElementById('teamMainVideo');
+      const sourceEl = document.getElementById('teamVideoSource');
+      const yt = document.getElementById('watchYoutube');
+      if (!vid || !wrap || !videoEl) return;
+      stopMainVideo();
+      if (vid.youtube && yt) {
+        yt.hidden = false;
+        videoEl.hidden = true;
+        yt.src = `https://www.youtube-nocookie.com/embed/${vid.youtube}?autoplay=1&rel=0`;
+      } else {
+        videoEl.hidden = false;
+        videoEl.poster = videoThumb(vid, true) || '';
+        if (sourceEl && sourceEl.getAttribute('src') !== vid.src) { sourceEl.src = vid.src; videoEl.load(); }
+        videoEl.muted = isVideoMuted;
+        videoEl.play().catch(() => {});
+      }
+      wrap.classList.add('is-playing');
+      playingVideoIdx = activeVideoIdx;
+      syncPlaylistState();
+      if (typeof playSubtleChime === 'function') playSubtleChime(600 + activeVideoIdx * 35, 0.05);
     }
 
     function toggleMainVideoPlay() {
       const videoEl = document.getElementById('teamMainVideo');
-      if (!videoEl) return;
-      if (videoEl.paused) {
-        videoEl.play().catch(() => {});
-        updateVideoPlayButtonState(true);
-        playSubtleChime(680, 0.04);
-      } else {
-        videoEl.pause();
-        updateVideoPlayButtonState(false);
-        playSubtleChime(440, 0.04);
-      }
+      if (playingVideoIdx === -1) return playCurrentVideo();
+      if (videoEl && !videoEl.hidden) { videoEl.paused ? videoEl.play().catch(() => {}) : videoEl.pause(); }
     }
 
-    function updateVideoPlayButtonState(isPlaying) {
-      const centerDisc = document.getElementById('videoCenterPlayBtn');
-      const centerIcon = document.getElementById('centerPlayIcon');
-      const ctrlIcon = document.getElementById('ctrlPlayIcon');
+    function updateVideoPlayButtonState() {}
 
-      if (isPlaying) {
-        centerDisc?.classList.add('is-playing');
-        if (centerIcon) centerIcon.className = 'ph-fill ph-pause text-3xl text-stone-100';
-        if (ctrlIcon) ctrlIcon.className = 'ph-fill ph-pause text-lg';
-      } else {
-        centerDisc?.classList.remove('is-playing');
-        if (centerIcon) centerIcon.className = 'ph-fill ph-play text-3xl ml-1 text-stone-100';
-        if (ctrlIcon) ctrlIcon.className = 'ph-fill ph-play text-lg';
-      }
+    function setupWatchPlaylist() {
+      const list = document.getElementById('teamVideoGalleryGrid');
+      if (!list) return;
+      const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+      const itemOf = (e) => e.target.closest?.('.watch-item');
+      list.addEventListener('click', (e) => { const it = itemOf(e); if (it) selectTeamVideo(Number(it.dataset.idx), true); });
+      // Preview on hover / keyboard focus — but never interrupt a video that is playing.
+      const preview = (e) => {
+        const it = itemOf(e);
+        if (!it || playingVideoIdx !== -1) return;
+        selectTeamVideo(Number(it.dataset.idx), false);
+      };
+      if (canHover) list.addEventListener('mouseover', preview);
+      list.addEventListener('focusin', preview);
+      // keep the sticky mobile player below the fixed header
+      const header = document.querySelector('header.lusion-navbar');
+      const setTop = () => document.documentElement.style.setProperty('--watch-sticky-top', `${(header?.offsetHeight || 64)}px`);
+      setTop(); window.addEventListener('resize', setTop, { passive: true });
+      selectTeamVideo(activeVideoIdx, false);
     }
 
     function toggleMainVideoMute() {
@@ -5342,12 +5542,9 @@
         }
       });
 
-      videoEl.addEventListener('play', () => updateVideoPlayButtonState(true));
-      videoEl.addEventListener('pause', () => updateVideoPlayButtonState(false));
       videoEl.addEventListener('ended', () => {
-        updateVideoPlayButtonState(false);
-        // Autoplay next video in loop
-        selectTeamVideo((activeVideoIdx + 1) % teamVideos.length);
+        // Continue with the next video in the playlist
+        selectTeamVideo((activeVideoIdx + 1) % teamVideos.length, true);
       });
     }
 
@@ -5421,6 +5618,36 @@
       if (previewState) previewState.classList.add('hidden');
     }
 
+    // Grab a frame ~1s in from an uploaded file so its poster/thumbnail is real.
+    function captureVideoPoster(src, vid) {
+      const probe = document.createElement('video');
+      probe.muted = true; probe.preload = 'auto'; probe.src = src;
+      probe.addEventListener('loadedmetadata', () => {
+        const d = probe.duration;
+        if (isFinite(d)) {
+          vid.durationSec = Math.round(d);
+          vid.duration = `${String(Math.floor(d / 60)).padStart(2, '0')}:${String(Math.round(d % 60)).padStart(2, '0')}`;
+        }
+        probe.currentTime = Math.min(1, (d || 2) / 2);
+      }, { once: true });
+      probe.addEventListener('seeked', () => {
+        try {
+          const c = document.createElement('canvas');
+          c.width = 640; c.height = Math.round(640 * (probe.videoHeight / probe.videoWidth || 9 / 16));
+          c.getContext('2d').drawImage(probe, 0, 0, c.width, c.height);
+          vid.poster = c.toDataURL('image/jpeg', 0.82);
+        } catch (e) { /* keep default poster */ }
+        renderTeamVideoGallery();
+        const i = teamVideos.indexOf(vid);
+        if (i === activeVideoIdx) {
+          const img = document.getElementById('watchPosterImg');
+          if (img) img.src = vid.poster;
+          const dur = document.getElementById('watchDuration');
+          if (dur) dur.textContent = vid.duration;
+        }
+      }, { once: true });
+    }
+
     function submitTeamVideoUpload(e) {
       e.preventDefault();
       const title = document.getElementById('uploadVideoTitle').value.trim();
@@ -5471,6 +5698,7 @@
             };
 
             teamVideos.unshift(newVideo);
+            if (selectedVideoFileBlob) captureVideoPoster(videoSrc, newVideo);
             activeVideoIdx = 0;
             renderTeamVideoGallery();
             selectTeamVideo(0);
@@ -5884,6 +6112,7 @@
       renderSpotlightDeck();
       renderLedgerRows();
       renderTeamVideoGallery();
+      setupWatchPlaylist();
       setupVideoEventListeners();
       setupTeamVideoScrollAnimation();
       setupVideoMeshCanvas();
