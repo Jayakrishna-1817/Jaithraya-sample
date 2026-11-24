@@ -118,6 +118,9 @@
        dot = exact pointer · ring = spring follower that stretches with
        speed, wraps buttons, morphs into a label pill · canvas = comet
        trail + click sparks. Fine pointers only; JS adds html.jc-on.   */
+    .paint-cursor { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 9996; pointer-events: none; display: block; visibility: hidden; }
+    /* hard-light: 50% grey = no change, darker darkens, lighter lightens → a signed colour shift like additive light */
+    .paint-cursor.is-live { visibility: visible; mix-blend-mode: hard-light; }
     .jc-dot, .jc-ring, .jc-trail { display: none; }
     @media (pointer: fine) {
       html.jc-on, html.jc-on * { cursor: none !important; }
@@ -209,8 +212,9 @@
       z-index: 1;
       width: min(34vw, 460px);
       transform: translateY(-50%) perspective(1200px) rotateY(8deg) rotateX(3deg);
-      filter: drop-shadow(0 28px 30px rgba(17, 21, 20, 0.2));
+      /* float uses the `translate` property (compositor-only, no layout) */
       animation: laptopFloat 6s ease-in-out infinite;
+      will-change: translate;
     }
     .hero-recommendation {
       position: relative;
@@ -364,11 +368,12 @@
       opacity: 0;
       transform: translateX(-26px);
     }
-    .hero-laptop.is-playing .hero-browser-brand-logo {
-      animation: heroBrandMarkIn 1.62s cubic-bezier(0.16, 1, 0.3, 1) 5.92s forwards;
+    /* logo + name: shown after the flipbook's last page (see setupHeroFlipbook) */
+    .hero-browser-page.show-brand .hero-browser-brand-logo {
+      animation: heroBrandMarkIn 1.4s cubic-bezier(0.16, 1, 0.3, 1) .45s forwards;
     }
-    .hero-laptop.is-playing .hero-browser-brand-name {
-      animation: heroBrandNameIn 1.78s cubic-bezier(0.16, 1, 0.3, 1) 6.22s forwards;
+    .hero-browser-page.show-brand .hero-browser-brand-name {
+      animation: heroBrandNameIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) .75s forwards;
     }
     .hero-browser-live-site {
       position: absolute;
@@ -454,6 +459,10 @@
     .hero-laptop.is-playing .hero-browser-orbit {
       animation: browserOrbit 14s linear 6.7s infinite;
     }
+    .hero-laptop::after {
+      content: ''; position: absolute; left: 6%; right: 6%; bottom: -14px; height: 26px; z-index: -1;
+      border-radius: 50%; background: rgba(17, 21, 20, 0.22); filter: blur(14px); pointer-events: none;
+    }
     .hero-laptop-base {
       position: relative;
       width: 114%;
@@ -473,9 +482,71 @@
       border-radius: 0 0 4px 4px;
       background: #85918D;
     }
+    /* ── Founders' story: a wordless, fast-flipping pencil flipbook ──
+       .fb-page shows the current frame; for every frame step the old
+       drawing is copied onto a .fb-fly sheet that peels off the spine. */
+    .fb-stage {
+      position: absolute; inset: 0; z-index: 3;
+      display: grid; place-items: center;
+      background: radial-gradient(120% 90% at 50% 38%, #F1EBE0 0%, #E0D5C2 100%);
+      opacity: 0; visibility: hidden;
+      transition: opacity .8s ease, visibility 0s linear .8s;
+    }
+    .hero-browser-page.fb-live { animation: none !important; opacity: 1; transform: none; }
+    .hero-browser-page.has-flipbook .fb-stage { opacity: 1; visibility: visible; transition: opacity .8s ease; }
+    .hero-browser-page.has-flipbook .hero-browser-brand-lockup { opacity: 0; transition: opacity .5s ease; }
+    .fb-book {
+      position: relative; height: 84%; aspect-ratio: 4 / 3; max-width: 86%;
+      perspective: 700px;
+      transform: rotate(-1.5deg);
+    }
+    .fb-page, .fb-fly {
+      position: absolute; inset: 0; overflow: hidden;
+      background: #FBF8F1; border-radius: 2px 5px 5px 2px;
+    }
+    .fb-page {
+      box-shadow:
+        1.5px 1.5px 0 #EEE8DC, 3px 3px 0 #E2DACB, 4.5px 4.5px 0 #D6CCB9, 6px 6px 0 #CBBFA9,
+        0 14px 22px -8px rgba(60, 45, 20, .5);
+    }
+    /* curling sheet: front = remaining part of the old page, back = folded-over flap */
+    .fb-sheet { position: absolute; inset: 0; pointer-events: none; visibility: hidden; }
+    .fb-sheet-front { position: absolute; inset: 0; overflow: hidden; background: #FBF8F1; border-radius: 2px 5px 5px 2px; }
+    .fb-sheet-shade { position: absolute; inset: 0; }
+    .fb-sheet-backwrap { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+    .fb-sheet-back { position: absolute; inset: 0; border-radius: 2px 5px 5px 2px; }
+    /* a thumb holding the stack, like a real flipbook */
+    .fb-thumb {
+      position: absolute; z-index: 9001; right: -9%; bottom: -16%; width: 17%; aspect-ratio: 1 / 1.25;
+      border-radius: 48% 52% 44% 46% / 58% 58% 42% 42%;
+      background: linear-gradient(160deg, #F0C6A3 0%, #DFA47F 70%, #C98A66 100%);
+      box-shadow: inset -3px -4px 6px rgba(120, 60, 30, .25), -2px 3px 6px rgba(40, 25, 10, .3);
+      transform: rotate(-38deg); transform-origin: 70% 90%;
+      transition: transform .12s ease;
+    }
+    .fb-thumb::after {
+      content: ''; position: absolute; left: 22%; top: 9%; width: 46%; height: 34%;
+      border-radius: 50% 50% 40% 40%; background: linear-gradient(#FBE3D3, #EFC9B2); box-shadow: inset 0 -1px 2px rgba(150, 90, 60, .3);
+    }
+    .fb-book.is-flipping .fb-thumb { transform: rotate(-34deg) translate(-1px, -1.5px); }
+    /* black binder clip on the spine, like a real flipbook */
+    .fb-book::before {
+      content: ''; position: absolute; z-index: 9000; left: -3%; top: 4%; bottom: 4%; width: 7%;
+      border-radius: 3px; background: linear-gradient(90deg, #1E2120, #3A3F3D 55%, #1E2120);
+      box-shadow: 1px 1px 2px rgba(0,0,0,.35);
+    }
+    .fb-svg { width: 100%; height: 100%; display: block; }
+    .fb-svg .s { fill: none; stroke: #2C2B28; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+    .fb-svg .w { fill: #FBF8F1; }
+    .fb-svg .a { fill: none; stroke: #EC5E27; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .fb-svg .f { fill: #EC5E27; }
+    .fb-svg .k { fill: #2C2B28; }
+    .fb-svg .dots { fill: none; stroke: #2C2B28; stroke-width: 1.4; stroke-linecap: round; stroke-dasharray: 0 4; }
+    .fb-svg .cw { fill: none; stroke: #FFF6EE; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
     @keyframes laptopFloat {
-      0%, 100% { margin-top: 0; }
-      50% { margin-top: -10px; }
+      0%, 100% { translate: 0 0; }
+      50% { translate: 0 -10px; }
     }
     @keyframes laptopLidOpen {
       0% { transform: rotateX(-88deg); opacity: 0.35; }
@@ -558,6 +629,8 @@
 
     /* Section 03: Lusion Area of Expertise (M · R · A · I) Accordion Pillars */
     .expertise-pillar {
+      position: relative;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, calc(0.28 * var(--pillar-shadow, 0)));
       flex: 1 1 0%;
       transition: flex 0.65s cubic-bezier(0.16, 1, 0.3, 1),
                   background-color 0.45s ease,
@@ -609,8 +682,10 @@
       background: rgba(248, 247, 244, 0.2);
     }
     .expertise-scroll-progress-fill {
-      width: 0%;
+      display: block;
+      width: 100%;
       height: 100%;
+      transform: scaleX(0);            /* progress drawn with scaleX (no layout) */
       background: #111514;
       transform-origin: left center;
     }
@@ -766,7 +841,8 @@
     .pricing-crossing-fill {
       position: absolute;
       inset: 0 0 auto;
-      height: 0%;
+      height: 100%;
+      transform: scaleY(0);            /* animated with scaleY (no layout), not height */
       background: #EC5E27;
       box-shadow: 0 0 18px rgba(42, 107, 92, 0.45);
       transform-origin: top center;
@@ -1088,12 +1164,15 @@
     /* Slide-over Studio Drawer */
     .studio-drawer-backdrop {
       opacity: 0;
+      visibility: hidden;            /* hidden, not just transparent: its backdrop blur is full-screen */
       pointer-events: none;
-      transition: opacity 0.38s ease;
+      transition: opacity 0.38s ease, visibility 0s linear 0.38s;
     }
     .studio-drawer-backdrop.open {
       opacity: 1;
+      visibility: visible;
       pointer-events: auto;
+      transition: opacity 0.38s ease;
     }
     .studio-drawer-panel {
       transform: translateX(100%);
@@ -1324,7 +1403,7 @@
         left: auto;
         top: auto;
         order: 2;                       /* headline + job search come first on small screens */
-        width: min(72vw, 380px);
+        width: min(88vw, 420px);           /* big enough to read the flipbook */
         margin: 0.5rem auto 0;
         transform: perspective(1000px) rotateY(5deg) rotateX(2deg);
       }
@@ -1726,7 +1805,7 @@
       position: relative;
       padding: 10px 14px;
       border-radius: 999px;
-      font-size: 14px;
+      font-size: 18px;
       font-weight: 500;
       color: #27302D;
       transition: color 0.2s ease, background-color 0.2s ease;
@@ -1762,6 +1841,229 @@
       transition: background-color 0.2s ease;
     }
     .site-cta:hover { background: #EC5E27; }
+
+    /* =====================================================================
+       JOIN WITH US — community sign-up / sign-in
+       ===================================================================== */
+    .join-section {
+      position: relative; overflow: hidden; isolation: isolate;
+      margin: 48px 12px; border-radius: 36px; background: #10120f; color: #EEE9DF;
+      padding: clamp(64px, 9vw, 120px) clamp(20px, 5vw, 72px);
+    }
+    @media (min-width: 640px) { .join-section { margin: 56px 24px; border-radius: 52px; } }
+    .join-glow {
+      position: absolute; z-index: -1; width: 70vmax; height: 70vmax; right: -30vmax; top: -30vmax;
+      background: radial-gradient(closest-side, rgba(236, 94, 39, .28), transparent 70%);
+      animation: joinGlow 14s ease-in-out infinite alternate; animation-play-state: paused;
+    }
+    .join-section.in-view .join-glow { animation-play-state: running; }
+    @keyframes joinGlow { to { transform: translate(-22vmax, 26vmax) scale(1.15); } }
+    .join-shell { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: clamp(36px, 6vw, 88px); align-items: center; }
+
+    /* reveal: each .jr rises in, staggered by --d */
+    .jr { opacity: 0; transform: translateY(28px); transition: opacity .8s ease, transform 1s cubic-bezier(.16,1,.3,1); transition-delay: calc(var(--d, 0) * 90ms); }
+    .join-section.in-view .jr { opacity: 1; transform: none; }
+
+    .join-eyebrow { margin: 0 0 18px; font: 600 11px/1 'JetBrains Mono', monospace; letter-spacing: .16em; text-transform: uppercase; color: #EC5E27; }
+    .join-eyebrow span { color: #8C8A83; margin-right: 8px; }
+    .join-title { margin: 0; font: 800 clamp(40px, 5.6vw, 78px)/.98 'Plus Jakarta Sans', sans-serif; letter-spacing: -.045em; color: #fff; }
+    .join-title em { font-style: normal; color: #EC5E27; }
+    .join-lead { margin: 22px 0 0; max-width: 520px; font: 400 17px/1.6 'Inter', sans-serif; color: #C9CEC6; }
+
+    /* orbit visual */
+    .join-orbit { position: relative; width: min(100%, 360px); aspect-ratio: 1; margin: 34px 0 26px; }
+    .join-orbit-ring { position: absolute; border-radius: 50%; border: 1px dashed rgba(255, 255, 255, .16); }
+    .join-orbit-ring.r1 { inset: 14%; }
+    .join-orbit-ring.r2 { inset: 0; border-style: solid; border-color: rgba(255, 255, 255, .08); }
+    .join-orbit-core {
+      position: absolute; inset: 36%; border-radius: 50%; display: grid; place-items: center;
+      background: #F4F3EF; box-shadow: 0 0 0 10px rgba(236, 94, 39, .12), 0 20px 50px -10px rgba(236, 94, 39, .45);
+      animation: joinCore 3.2s ease-in-out infinite; animation-play-state: paused;
+    }
+    .join-orbit-core img { width: 74%; height: 74%; object-fit: contain; }
+    @keyframes joinCore { 50% { transform: scale(1.05); } }
+    .join-orbit-track { position: absolute; inset: 0; animation: joinSpin 26s linear infinite; animation-play-state: paused; }
+    .join-orbit-track.t1 { inset: 0; }
+    .join-orbit-track.t2 { inset: 14%; animation-duration: 18s; animation-direction: reverse; }
+    .join-section.in-view .join-orbit-track, .join-section.in-view .join-orbit-core { animation-play-state: running; }
+    .join-chip {
+      position: absolute; left: 50%; top: 50%;
+      transform: rotate(var(--a)) translateY(-50cqw) rotate(calc(-1 * var(--a)));
+      display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+      padding: 8px 12px; border-radius: 999px; translate: -50% -50%;
+      background: rgba(23, 26, 24, .92); border: 1px solid rgba(255, 255, 255, .14);
+      font: 600 12px/1 'Inter', sans-serif; color: #EEE9DF; box-shadow: 0 10px 24px -10px rgba(0,0,0,.6);
+    }
+    .join-orbit-track { container-type: inline-size; }
+    .join-chip i { color: #EC5E27; font-size: 14px; }
+    /* counter-rotate chips so their text stays upright while the track spins */
+    .join-orbit-track.t1 .join-chip { animation: joinUpright1 26s linear infinite; animation-play-state: inherit; }
+    .join-orbit-track.t2 .join-chip { animation: joinUpright2 18s linear infinite; animation-play-state: inherit; }
+    @keyframes joinSpin { to { transform: rotate(360deg); } }
+    @keyframes joinUpright1 { from { transform: rotate(var(--a)) translateY(-50cqw) rotate(calc(-1 * var(--a))) rotate(0deg); } to { transform: rotate(var(--a)) translateY(-50cqw) rotate(calc(-1 * var(--a))) rotate(-360deg); } }
+    @keyframes joinUpright2 { from { transform: rotate(var(--a)) translateY(-50cqw) rotate(calc(-1 * var(--a))) rotate(0deg); } to { transform: rotate(var(--a)) translateY(-50cqw) rotate(calc(-1 * var(--a))) rotate(360deg); } }
+
+    .join-perks { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+    .join-perks li { display: flex; gap: 12px; align-items: flex-start; font: 400 15px/1.5 'Inter', sans-serif; color: #BFC4BC; }
+    .join-perks b { color: #fff; font-weight: 600; }
+    .join-perks i { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: rgba(236, 94, 39, .14); color: #EC5E27; font-size: 16px; }
+
+    /* form card with a light that travels around its border */
+    .join-card { position: relative; border-radius: 30px; padding: 1.5px; overflow: hidden; background: rgba(255, 255, 255, .1);
+      box-shadow: 0 40px 90px -40px rgba(0, 0, 0, .8); }
+    .join-card-border {
+      position: absolute; left: 50%; top: 50%; width: 160%; aspect-ratio: 1; translate: -50% -50%;
+      background: conic-gradient(from 0deg, transparent 0 62%, rgba(236, 94, 39, .0) 64%, #EC5E27 76%, #FFB48F 80%, transparent 86%);
+      animation: joinSpin 7s linear infinite; animation-play-state: paused;
+    }
+    .join-section.in-view .join-card-border { animation-play-state: running; }
+    .join-card-inner { position: relative; border-radius: 28.5px; background: linear-gradient(180deg, #181B19, #131614); padding: clamp(22px, 3.4vw, 40px); }
+
+    .join-card-head { margin-bottom: 22px; }
+    .join-card-head h3 { margin: 0; font: 800 26px/1.1 'Plus Jakarta Sans', sans-serif; letter-spacing: -.03em; color: #fff; }
+    .join-card-head p { margin: 6px 0 0; font: 400 14px/1.5 'Inter', sans-serif; color: #9DA39B; }
+    .join-panel { display: grid; gap: 16px; }
+    .join-panel.is-active { animation: joinPanelIn .55s cubic-bezier(.16,1,.3,1); }
+    @keyframes joinPanelIn { from { opacity: 0; transform: translateY(14px); } }
+    .jf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    /* floating-label field */
+    .jf { position: relative; }
+    .jf input {
+      width: 100%; height: 58px; padding: 22px 16px 8px; border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, .14); background: rgba(255, 255, 255, .04); color: #fff;
+      font: 500 15px/1 'Inter', sans-serif; outline: none;
+      transition: border-color .25s ease, background-color .25s ease, box-shadow .25s ease;
+    }
+    .jf input:hover { border-color: rgba(255, 255, 255, .28); }
+    .jf input:focus { border-color: #EC5E27; background: rgba(236, 94, 39, .06); box-shadow: 0 0 0 4px rgba(236, 94, 39, .16); }
+    .jf label {
+      position: absolute; left: 17px; top: 20px; pointer-events: none; transform-origin: left top;
+      font: 500 15px/1 'Inter', sans-serif; color: #9DA39B; transition: transform .25s cubic-bezier(.16,1,.3,1), color .25s ease;
+    }
+    .jf label small { font-size: .82em; color: #7D837B; }
+    .jf input:focus + label, .jf input:not(:placeholder-shown) + label { transform: translateY(-11px) scale(.76); color: #EC5E27; }
+    .jf input:not(:focus):not(:placeholder-shown) + label { color: #9DA39B; }
+    .jf.has-error input { border-color: #FF6B5A; box-shadow: 0 0 0 4px rgba(255, 107, 90, .14); animation: jfShake .4s ease; }
+    @keyframes jfShake { 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
+    .jf-err { margin: 6px 2px 0; min-height: 0; font: 500 12.5px/1.3 'Inter', sans-serif; color: #FF8A7C; }
+    .jf-err:empty { display: none; }
+    .jf-pass input { padding-right: 52px; }
+    .jf-eye { position: absolute; right: 8px; top: 8px; width: 42px; height: 42px; border: 0; border-radius: 10px; background: none; color: #9DA39B; cursor: pointer; font-size: 18px; }
+    .jf-eye:hover { color: #fff; background: rgba(255,255,255,.06); }
+
+    .jf-chips { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+    .jf-chips legend { width: 100%; margin-bottom: 10px; font: 600 11px/1 'JetBrains Mono', monospace; letter-spacing: .12em; text-transform: uppercase; color: #9DA39B; }
+    .jf-chips label { position: relative; cursor: pointer; }
+    .jf-chips input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+    .jf-chips span { display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .16);
+      font: 600 13px/1 'Inter', sans-serif; color: #D7DBD4; transition: background-color .25s ease, border-color .25s ease, color .25s ease, transform .3s cubic-bezier(.34,1.56,.64,1); }
+    .jf-chips label:hover span { border-color: rgba(255, 255, 255, .4); }
+    .jf-chips input:checked + span { background: #EC5E27; border-color: #EC5E27; color: #fff; transform: scale(1.04); }
+    .jf-chips input:focus-visible + span { outline: 2px solid #EC5E27; outline-offset: 3px; }
+    .jf-chips .jf-err { width: 100%; }
+
+    .jf-check { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font: 500 14px/1.4 'Inter', sans-serif; color: #C9CEC6; }
+    .jf-check input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .jf-box { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid rgba(255, 255, 255, .3); transition: background-color .2s ease, border-color .2s ease; }
+    .jf-box svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 16; stroke-dashoffset: 16; transition: stroke-dashoffset .3s ease .05s; }
+    .jf-check input:checked + .jf-box { background: #EC5E27; border-color: #EC5E27; }
+    .jf-check input:checked + .jf-box svg { stroke-dashoffset: 0; }
+    .jf-check input:focus-visible + .jf-box { outline: 2px solid #EC5E27; outline-offset: 2px; }
+    .js-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+    .join-submit {
+      position: relative; overflow: hidden; isolation: isolate; margin-top: 6px;
+      display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 56px;
+      border: 0; border-radius: 16px; cursor: pointer; background: #EC5E27; color: #fff;
+      font: 700 16px/1 'Plus Jakarta Sans', sans-serif; letter-spacing: -.01em;
+      box-shadow: 0 18px 40px -16px rgba(236, 94, 39, .8); transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease;
+    }
+    .join-submit::before { content: ''; position: absolute; inset: 0; z-index: -1; background: #111514; transform: translateY(101%); transition: transform .45s cubic-bezier(.16,1,.3,1); }
+    .join-submit:hover { transform: translateY(-2px); box-shadow: 0 22px 46px -16px rgba(236, 94, 39, .9); }
+    .join-submit:hover::before { transform: none; }
+    .join-submit i { transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
+    .join-submit:hover i { transform: translateX(4px); }
+    .join-submit:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+    .join-submit-spin { display: none; width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.35); border-top-color: #fff; animation: joinSpin .8s linear infinite; }
+    .join-submit.is-loading { pointer-events: none; }
+    .join-submit.is-loading .join-submit-spin { display: block; }
+    .join-submit.is-loading i { display: none; }
+    .join-fine { margin: 2px 0 0; text-align: center; font: 400 13px/1.5 'Inter', sans-serif; color: #8C918A; }
+    .join-link { border: 0; background: none; padding: 0; cursor: pointer; font: 600 13px/1.5 'Inter', sans-serif; color: #EC5E27; text-decoration: underline; text-underline-offset: 3px; }
+    .join-link:hover { color: #FFB48F; }
+
+    /* success */
+    .join-success { position: relative; display: grid; justify-items: center; text-align: center; gap: 10px; padding: 30px 6px 10px; outline: none; }
+    .join-success:not([hidden]) { animation: joinPanelIn .6s cubic-bezier(.16,1,.3,1); }
+    .join-confetti { position: absolute; inset: -40px; width: calc(100% + 80px); height: calc(100% + 80px); pointer-events: none; }
+    .join-check { width: 84px; height: 84px; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .join-check circle { stroke: #EC5E27; stroke-width: 3; stroke-dasharray: 176; stroke-dashoffset: 176; animation: joinDraw .7s ease forwards; }
+    .join-check path { stroke: #fff; stroke-width: 4; stroke-dasharray: 44; stroke-dashoffset: 44; animation: joinDraw .45s ease .55s forwards; }
+    @keyframes joinDraw { to { stroke-dashoffset: 0; } }
+    .join-success h3 { margin: 8px 0 0; font: 800 34px/1.05 'Plus Jakarta Sans', sans-serif; letter-spacing: -.03em; color: #fff; }
+    .join-success p { margin: 0; max-width: 380px; font: 400 15px/1.6 'Inter', sans-serif; color: #C9CEC6; }
+    .join-again { margin-top: 14px; min-height: 44px; padding: 0 20px; border-radius: 999px; border: 1px solid rgba(255,255,255,.2); background: none; color: #EEE9DF; font: 600 14px/1 'Inter', sans-serif; cursor: pointer; }
+    .join-again:hover { border-color: #fff; }
+
+    @media (max-width: 1023px) {
+      .join-shell { grid-template-columns: 1fr; }
+      .join-orbit { width: min(78vw, 320px); margin: 30px auto 24px; }
+    }
+    @media (max-width: 560px) {
+      .jf-row { grid-template-columns: 1fr; }
+      .join-chip { font-size: 11px; padding: 7px 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .jr { opacity: 1; transform: none; transition: none; }
+      .join-glow, .join-orbit-track, .join-orbit-track .join-chip, .join-orbit-core, .join-card-border { animation: none !important; }
+      .join-check circle, .join-check path { animation: none; stroke-dashoffset: 0; }
+    }
+    /* ── Navbar actions: Sign in (quiet) + Join the community (primary) ── */
+    .site-actions { display: flex; align-items: center; gap: 10px; }
+    .nav-signin, .nav-join {
+      position: relative; display: inline-flex; align-items: center; gap: 8px;
+      min-height: 44px; padding: 0 18px; border-radius: 999px; white-space: nowrap;
+      font: 600 14px/1 'Inter', sans-serif; letter-spacing: -0.005em;
+      transition: background-color .25s ease, border-color .25s ease, color .25s ease, box-shadow .3s ease, transform .3s cubic-bezier(.16,1,.3,1);
+    }
+    .nav-signin { color: #111514; border: 1px solid rgba(17, 21, 20, .16); background: rgba(255, 255, 255, .55); }
+    .nav-signin i { font-size: 18px; transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
+    .nav-signin:hover { border-color: #111514; background: #fff; }
+    .nav-signin:hover i { transform: scale(1.12) rotate(-8deg); }
+    .nav-join { overflow: hidden; isolation: isolate; color: #F8F7F4; background: #111514; padding-right: 14px;
+      box-shadow: 0 10px 24px -12px rgba(17, 21, 20, .55); }
+    .nav-join::before {                               /* orange fill that wipes in on hover */
+      content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: #EC5E27;
+      transform: translateX(-101%); transition: transform .45s cubic-bezier(.16,1,.3,1);
+    }
+    .nav-join::after {                                /* light sheen that sweeps across every few seconds */
+      content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; z-index: -1;
+      background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .22), transparent);
+      transform: translateX(-160%) skewX(-18deg); animation: navJoinSheen 5.5s ease-in-out 2s infinite;
+    }
+    .nav-join:hover { box-shadow: 0 14px 30px -12px rgba(236, 94, 39, .75); transform: translateY(-1px); }
+    .nav-join:hover::before { transform: translateX(0); }
+    .nav-join-dot { width: 7px; height: 7px; border-radius: 50%; background: #EC5E27; box-shadow: 0 0 0 0 rgba(236, 94, 39, .6); animation: navJoinPing 2.2s ease-out infinite; transition: background-color .25s ease; }
+    .nav-join:hover .nav-join-dot { background: #fff; }
+    .nav-join-arrow { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: rgba(255, 255, 255, .12); font-size: 13px;
+      transition: transform .35s cubic-bezier(.34,1.56,.64,1), background-color .25s ease; }
+    .nav-join:hover .nav-join-arrow { transform: rotate(45deg); background: rgba(255, 255, 255, .22); }
+    .nav-join-short { display: none; }
+    .nav-signin:focus-visible, .nav-join:focus-visible { outline: 2px solid #EC5E27; outline-offset: 3px; }
+    @keyframes navJoinSheen { 0%, 70% { transform: translateX(-160%) skewX(-18deg); } 100% { transform: translateX(330%) skewX(-18deg); } }
+    @keyframes navJoinPing { 0% { box-shadow: 0 0 0 0 rgba(236, 94, 39, .6); } 80%, 100% { box-shadow: 0 0 0 7px rgba(236, 94, 39, 0); } }
+    @media (max-width: 640px) {
+      .site-actions { gap: 6px; }
+      .nav-signin { padding: 0 12px; }
+      .nav-signin span { display: none; }
+      .nav-join { padding: 0 8px 0 14px; }
+      .nav-join-long { display: none; }
+      .nav-join-short { display: inline; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .nav-join::after, .nav-join-dot { animation: none; }
+    }
     @media (max-width: 480px) {
       .site-sound-btn #motionStatusText { display: none; }
       .site-sound-btn { padding: 0 12px; }
@@ -2122,6 +2424,14 @@
       cursor: pointer;
     }
     .offer-slide.is-active { cursor: default; }
+    .offer-carousel.is-hover-paused .offer-slide.is-active .offer-shot { box-shadow: 0 50px 110px -40px rgba(236, 94, 39, 0.6), 0 0 0 3px #EC5E27; }
+    .offer-carousel .offer-stage::after {
+      content: 'Paused'; position: absolute; left: 50%; bottom: -8px; z-index: 30; transform: translate(-50%, 6px);
+      padding: 6px 12px; border-radius: 999px; background: #111514; color: #F4F3EF;
+      font: 600 10px/1 'JetBrains Mono', monospace; letter-spacing: .14em; text-transform: uppercase;
+      opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease;
+    }
+    .offer-carousel.is-hover-paused .offer-stage::after { opacity: 1; transform: translate(-50%, 0); }
     .offer-shot {
       position: relative;
       width: 100%;
@@ -2506,6 +2816,7 @@
   <canvas id="lusionRibbonCanvas" class="fixed inset-0 w-full h-full pointer-events-none z-0"></canvas>
 
   <!-- EMBER COMET CURSOR (decorative; native cursor returns on touch / coarse pointers) -->
+  <canvas id="paintCursor" class="paint-cursor" aria-hidden="true"></canvas>
   <canvas id="cursorTrail" class="jc-trail" aria-hidden="true"></canvas>
   <div id="lusionCursorDot" class="jc-dot" aria-hidden="true"></div>
   <div id="lusionCursorPill" class="jc-ring" aria-hidden="true">
@@ -2545,12 +2856,18 @@
           <span id="motionStatusText">Sound on</span>
         </button> -->
 
-        <a href="#hero-about" class="site-cta" data-cursor="SEARCH ↗" onclick="setTimeout(() => document.getElementById('heroSearchInput')?.focus({ preventScroll: true }), 450)">
-          <i class="ph-bold ph-magnifying-glass" aria-hidden="true"></i>
-          <span>Find jobs</span>
-        </a>
-      </div>
-
+        <div class="site-actions">
+          <a href="signin.html" class="nav-signin" data-cursor="SIGN IN" aria-label="Sign in">
+            <i class="ph-bold ph-user-circle" aria-hidden="true"></i>
+            <span>Sign in</span>
+          </a>
+          <a href="#join-community" class="nav-join" data-join-tab="join" data-cursor="JOIN ↗">
+            <span class="nav-join-dot" aria-hidden="true"></span>
+            <span class="nav-join-long">Join the community</span>
+            <span class="nav-join-short">Join</span>
+            <i class="ph-bold ph-arrow-up-right nav-join-arrow" aria-hidden="true"></i>
+          </a>
+        </div>
     </div>
   </header>
 
@@ -2583,7 +2900,7 @@
       </div>
 
       <!-- Animated laptop/browser preview -->
-      <div class="hero-laptop" aria-label="Animated Jaīthraya website preview">
+      <div class="hero-laptop" aria-label="Animated flipbook: the story of how Jaithraya began" role="img">
         <div class="hero-laptop-screen">
           <div class="hero-browser">
             <div class="hero-browser-tabs">
@@ -2607,6 +2924,13 @@
                   alt="Jaithraya logo"
                 />
                 <span class="hero-browser-brand-name">Jaithraya</span>
+              </div>
+              <!-- Founders' story flipbook: wordless, frames drawn by setupHeroFlipbook -->
+              <div class="fb-stage" id="heroFlipbook" aria-hidden="true">
+                <div class="fb-book" id="heroFlipbookBook">
+                  <div class="fb-page" id="heroFlipbookPage"></div>
+                  <div class="fb-thumb" aria-hidden="true"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -3508,6 +3832,122 @@
     END role-ledger -->
 
     <!-- =================================================================== -->
+    <!-- JOIN WITH US: community sign-up / sign-in (navbar buttons land here) -->
+    <!-- =================================================================== -->
+    <section id="join-community" class="join-section" aria-labelledby="joinTitle">
+      <div class="join-glow" aria-hidden="true"></div>
+      <div class="join-shell">
+
+        <!-- Left: pitch + animated orbit -->
+        <div class="join-pitch">
+          <p class="join-eyebrow jr" style="--d:0"><span>06</span> Join with us</p>
+          <h2 id="joinTitle" class="join-title jr" style="--d:1">Nobody should job-hunt <em>alone.</em></h2>
+          <p class="join-lead jr" style="--d:2">
+            Join a community of international job seekers sharing sponsor-friendly openings,
+            referrals, résumé feedback and the day the offer finally lands.
+          </p>
+
+          <div class="join-orbit jr" style="--d:3" aria-hidden="true">
+            <div class="join-orbit-ring r1"></div>
+            <div class="join-orbit-ring r2"></div>
+            <div class="join-orbit-core"><img src="https://www.jaithraya.com/logo.png" alt="" width="64" height="64"></div>
+            <div class="join-orbit-track t1">
+              <span class="join-chip" style="--a:0deg"><i class="ph-bold ph-airplane-tilt"></i>Visa tips</span>
+              <span class="join-chip" style="--a:180deg"><i class="ph-bold ph-handshake"></i>Referrals</span>
+            </div>
+            <div class="join-orbit-track t2">
+              <span class="join-chip" style="--a:90deg"><i class="ph-bold ph-file-text"></i>Résumé reviews</span>
+              <span class="join-chip" style="--a:270deg"><i class="ph-bold ph-confetti"></i>Offer wins</span>
+            </div>
+          </div>
+
+          <ul class="join-perks">
+            <li class="jr" style="--d:4"><i class="ph-bold ph-lightning" aria-hidden="true"></i><span><b>Weekly sponsor drops</b> — new H-1B &amp; OPT-friendly roles every week</span></li>
+            <li class="jr" style="--d:5"><i class="ph-bold ph-users-three" aria-hidden="true"></i><span><b>Referral threads</b> — ask people already inside the company</span></li>
+            <li class="jr" style="--d:6"><i class="ph-bold ph-chat-circle-text" aria-hidden="true"></i><span><b>Live Q&amp;A</b> — visa timelines, interviews and offers</span></li>
+          </ul>
+        </div>
+
+        <!-- Right: form card with Join / Sign in tabs -->
+        <div class="join-card jr" style="--d:2">
+          <div class="join-card-border" aria-hidden="true"></div>
+          <div class="join-card-inner">
+
+            <div class="join-card-head">
+              <h3>Join the community</h3>
+              <p>Takes 30 seconds. Free, always.</p>
+            </div>
+
+            <!-- JOIN -->
+            <form id="joinPanelJoin" class="join-panel is-active" aria-label="Join the community" novalidate data-endpoint="">
+              <div class="jf-row">
+                <div class="jf">
+                  <input id="jfName" name="name" type="text" autocomplete="name" placeholder=" " required>
+                  <label for="jfName">Full name</label>
+                  <p class="jf-err" id="jfNameErr" aria-live="polite"></p>
+                </div>
+                <div class="jf">
+                  <input id="jfEmail" name="email" type="email" autocomplete="email" placeholder=" " required>
+                  <label for="jfEmail">Email</label>
+                  <p class="jf-err" id="jfEmailErr" aria-live="polite"></p>
+                </div>
+              </div>
+
+              <fieldset class="jf-chips">
+                <legend>Current visa status</legend>
+                <label><input type="radio" name="visa" value="F-1 OPT" required><span>F-1 OPT</span></label>
+                <label><input type="radio" name="visa" value="STEM-OPT"><span>STEM-OPT</span></label>
+                <label><input type="radio" name="visa" value="H-1B"><span>H-1B</span></label>
+                <label><input type="radio" name="visa" value="Other"><span>Other</span></label>
+                <p class="jf-err" id="jfVisaErr" aria-live="polite"></p>
+              </fieldset>
+
+              <div class="jf-row">
+                <div class="jf">
+                  <input id="jfRole" name="role" type="text" list="jfRoleList" autocomplete="organization-title" placeholder=" " required>
+                  <label for="jfRole">Role you're targeting</label>
+                  <datalist id="jfRoleList">
+                    <option value="Software Engineer"><option value="Data Scientist"><option value="ML Engineer">
+                    <option value="Product Designer"><option value="Product Manager"><option value="Data Analyst">
+                  </datalist>
+                  <p class="jf-err" id="jfRoleErr" aria-live="polite"></p>
+                </div>
+                <div class="jf">
+                  <input id="jfLinkedin" name="linkedin" type="url" inputmode="url" autocomplete="url" placeholder=" ">
+                  <label for="jfLinkedin">LinkedIn URL <small>(optional)</small></label>
+                  <p class="jf-err" id="jfLinkedinErr" aria-live="polite"></p>
+                </div>
+              </div>
+
+              <label class="jf-check">
+                <input type="checkbox" name="updates" checked>
+                <span class="jf-box" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg></span>
+                <span>Send me the weekly sponsor-friendly job drop</span>
+              </label>
+
+              <button type="submit" class="join-submit">
+                <span class="join-submit-label">Join the community</span>
+                <span class="join-submit-spin" aria-hidden="true"></span>
+                <i class="ph-bold ph-arrow-right" aria-hidden="true"></i>
+              </button>
+              <p class="join-fine">Free to join. We'll never share your details. <a class="join-link" href="signin.html">Already a member? Sign in</a></p>
+            </form>
+
+            <!-- SUCCESS -->
+            <div class="join-success" id="joinSuccess" hidden tabindex="-1">
+              <canvas class="join-confetti" id="joinConfetti" aria-hidden="true"></canvas>
+              <svg class="join-check" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="28"/><path d="M19 33l9 9 17-19"/></svg>
+              <h3 id="joinSuccessTitle">You're in!</h3>
+              <p id="joinSuccessText">Welcome to the Jaithraya community.</p>
+              <button type="button" class="join-again" id="joinAgain">Back</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
     <!-- SECTION 06: LUSION/ABOUT 'CONTINUE TO SCROLL' PORTAL FOOTER         -->
     <!-- =================================================================== -->
     <footer class="pt-20 pb-24 px-6 sm:px-10 max-w-[1400px] mx-auto border-t border-stone-300">
@@ -3812,10 +4252,20 @@
       const label = document.getElementById('lusionCursorText');
       const trail = document.getElementById('cursorTrail');
       const root = document.documentElement;
+      // Custom dot + ring cursor is switched off: the normal system cursor is used and the
+      // fluid splash ink follows it. Set to true to bring the dot/ring (labels, magnetic pull) back.
+      const USE_CUSTOM_CURSOR = false;
+      if (!USE_CUSTOM_CURSOR) {
+        [dot, ring, trail].forEach((el) => el?.remove());
+        window.addEventListener('pointermove', (e) => { mouseX = e.clientX; mouseY = e.clientY; }, { passive: true });
+        return;
+      }
       if (!dot || !ring || !label || !window.matchMedia('(pointer: fine)').matches) return;
       root.classList.add('jc-on');
       const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const ctx = !calm && trail ? trail.getContext('2d') : null;
+      let ctx = !calm && trail ? trail.getContext('2d') : null;
+      // The fluid splash cursor (if WebGL2 works) replaces the 2D comet trail + sparks.
+      window.disableCursorTrail = () => { if (ctx) ctx.clearRect(0, 0, W, H); ctx = null; if (trail) trail.style.display = 'none'; };
       const ORANGE = '236, 94, 39';
       const GLYPHS = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789/#+*';
       const TEXT_SEL = 'input:not([type=button]):not([type=submit]):not([type=checkbox]):not([type=radio]):not([type=range]), textarea, select, [contenteditable="true"]';
@@ -3830,6 +4280,7 @@
       const sparks = [];   // click particles
       const ripples = [];
       let W = 0, H = 0, dpr = 1;
+      let trailDirty = false;
 
       const resize = () => {
         if (!ctx) return;
@@ -3924,10 +4375,15 @@
       document.addEventListener('mouseenter', () => root.classList.add('jc-visible'));
       window.addEventListener('blur', () => root.classList.remove('jc-visible'));
       // when the page scrolls under a still mouse, re-check what's under it
+      let scrollCheck = 0;
       window.addEventListener('scroll', () => {
-        if (!target) return;
-        const el = document.elementFromPoint(mouseX, mouseY);
-        if (!el || !target.contains(el)) setTarget(el ? (el.closest(TEXT_SEL) || el.closest(HIT_SEL)) : null);
+        if (!target || scrollCheck) return;
+        scrollCheck = requestAnimationFrame(() => {
+          scrollCheck = 0;
+          if (!target) return;
+          const el = document.elementFromPoint(mouseX, mouseY);
+          if (!el || !target.contains(el)) setTarget(el ? (el.closest(TEXT_SEL) || el.closest(HIT_SEL)) : null);
+        });
       }, { passive: true });
 
       window.addEventListener('pointerdown', (e) => {
@@ -3988,9 +4444,11 @@
         } else { magX = 0; magY = 0; }
 
         // comet trail + sparks
-        if (ctx) {
+        while (points.length && now - points[0].t > 280) points.shift();
+        const busy = points.length > 1 || sparks.length || ripples.length;
+        if (ctx && (busy || trailDirty)) {
           ctx.clearRect(0, 0, W, H);
-          while (points.length && now - points[0].t > 280) points.shift();
+          trailDirty = busy;                    // one last clear after the trail fades, then idle
           if (points.length > 2 && !root.classList.contains('jc-text')) {
             ctx.lineCap = 'round'; ctx.lineJoin = 'round';
             for (let i = 1; i < points.length; i++) {
@@ -4175,8 +4633,13 @@
           const rotation = pointerX * depth * 0.35 + Math.sin(performance.now() * 0.001 + index) * 2;
           icon.style.transform = `translate3d(${driftX}px, ${driftY}px, 0) rotate(${rotation}deg)`;
         });
-        animationFrame = requestAnimationFrame(animateIcons);
+        animationFrame = onScreen ? requestAnimationFrame(animateIcons) : 0;
       };
+      let onScreen = false;
+      new IntersectionObserver(([en]) => {
+        onScreen = en.isIntersecting;
+        if (onScreen && !animationFrame) animationFrame = requestAnimationFrame(animateIcons);
+      }).observe(field);
 
       field.addEventListener('pointermove', (event) => {
         const bounds = field.getBoundingClientRect();
@@ -4187,7 +4650,6 @@
         targetX = 0;
         targetY = 0;
       });
-      animateIcons();
       field.addEventListener('remove', () => cancelAnimationFrame(animationFrame), { once: true });
     }
 
@@ -4258,7 +4720,7 @@
       const media = gsap.matchMedia();
       const updateProgress = progress => {
         const percentage = Math.round(progress * 100);
-        if (progressFill) progressFill.style.width = `${percentage}%`;
+        if (progressFill) progressFill.style.transform = `scaleX(${progress.toFixed(4)})`;
         if (progressValue) progressValue.innerText = `${percentage < 10 ? '0' : ''}${percentage}%`;
       };
 
@@ -4285,13 +4747,12 @@
             { y: 0, opacity: 1, scale: 1, duration: 0.8, ease: 'power3.out' }
           )
           .fromTo(pillars,
-            { y: 180, opacity: 0, rotationX: 16, scale: 0.78, filter: 'blur(8px) saturate(0.5)' },
+            { y: 180, opacity: 0, rotationX: 16, scale: 0.78 },
             {
               y: 0,
               opacity: 1,
               rotationX: 0,
               scale: 1,
-              filter: 'blur(0px) saturate(1)',
               duration: 1.8,
               stagger: 0.2,
               ease: 'power3.out'
@@ -4309,7 +4770,7 @@
             '-=0.8'
           )
           .to(pillars, {
-            boxShadow: '0 24px 70px rgba(0, 0, 0, 0.28)',
+            '--pillar-shadow': 1,          // shadow fades in only in this short end segment
             duration: 0.45,
             stagger: 0.08,
             ease: 'power2.out'
@@ -4525,7 +4986,7 @@
       media.add('(min-width: 1024px)', () => {
         gsap.set(intro, { opacity: 0.35, y: 30 });
         gsap.set(cards, { opacity: 0, y: 130, rotateX: 16, transformPerspective: 1400 });
-        gsap.set(crossingFill, { height: '0%' });
+        gsap.set(crossingFill, { scaleY: 0, transformOrigin: 'top center' });
 
         const timeline = gsap.timeline({
           scrollTrigger: {
@@ -4539,7 +5000,7 @@
 
         timeline
           .to(intro, { opacity: 1, y: 0, duration: 0.18, ease: 'power2.out' })
-          .to(crossingFill, { height: '100%', duration: 0.9, ease: 'none' }, '<0.04')
+          .to(crossingFill, { scaleY: 1, duration: 0.9, ease: 'none' }, '<0.04')
           .to(cards, {
             opacity: 1,
             y: 0,
@@ -4574,10 +5035,14 @@
     // Subtle Scroll Velocity Skew (Lusion Inertia Effect)
     let lastScrollY = window.scrollY;
     const skewTarget = document.querySelector('.velocity-skew-target');
+    let skewOn = true;
+    if (skewTarget && 'IntersectionObserver' in window) {
+      new IntersectionObserver(([en]) => { skewOn = en.isIntersecting; if (!skewOn) skewTarget.style.transform = ''; }).observe(skewTarget);
+    }
     window.addEventListener('scroll', () => {
       const delta = window.scrollY - lastScrollY;
       lastScrollY = window.scrollY;
-      if (skewTarget && motionAndSoundEnabled) {
+      if (skewTarget && skewOn && motionAndSoundEnabled) {
         const clampedSkew = Math.max(-2.2, Math.min(2.2, delta * 0.04));
         skewTarget.style.transform = `skewY(${clampedSkew}deg)`;
         clearTimeout(window.skewResetTimer);
@@ -4681,8 +5146,19 @@
         rCtx.restore();
       });
 
-      requestAnimationFrame(renderTopologicalCanvas);
+      ribbonFrame = ribbonLive ? requestAnimationFrame(renderTopologicalCanvas) : 0;
     }
+    // Animate only while the hero is on screen; elsewhere the rings stay frozen on
+    // their last frame (still visible behind sections, but no per-frame cost).
+    let ribbonLive = true, ribbonFrame = 0;
+    const ribbonHero = document.getElementById('hero-about');
+    if (ribbonHero && 'IntersectionObserver' in window) {
+      new IntersectionObserver(([entry]) => {
+        ribbonLive = entry.isIntersecting;
+        if (ribbonLive && !ribbonFrame) ribbonFrame = requestAnimationFrame(renderTopologicalCanvas);
+      }).observe(ribbonHero);
+    }
+    window.addEventListener('resize', () => { if (!ribbonLive) renderTopologicalCanvas(); });   // resizing clears the canvas
     renderTopologicalCanvas();
 
     // =========================================================================
@@ -6148,10 +6624,661 @@
         if (loaderProgressPercent) loaderProgressPercent.innerText = '100%';
         document.getElementById('siteLoader')?.classList.add('is-hidden');
         document.querySelector('.hero-laptop')?.classList.add('is-playing');
+        window.startHeroFlipbook?.();
       }, loaderDuration);
     };
   </script>
 
+
+  <!-- ===================================================================== -->
+  <!-- HERO FLIPBOOK: the founders' story as a fast, wordless pencil flipbook -->
+  <!-- ===================================================================== -->
+  <script>
+    (function setupHeroFlipbook() {
+      const book = document.getElementById('heroFlipbookBook');
+      const pageEl = document.getElementById('heroFlipbookPage');
+      const stage = document.getElementById('heroFlipbook');
+      const browserPage = stage?.closest('.hero-browser-page');
+      const laptop = stage?.closest('.hero-laptop');
+      if (!book || !pageEl || !browserPage) return;
+      const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // ── drawing helpers (viewBox 160 × 120, ground at y = 104) ─────────
+      const P = (c, d) => `<path class="${c}" d="${d}"/>`;
+      const L = (x1, y1, x2, y2, c = 's') => `<path class="${c}" d="M${x1.toFixed(1)} ${y1.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)}"/>`;
+      const C = (x, y, r, c = 's') => `<circle class="${c}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}"/>`;
+      const R = (x, y, w, h, c = 's', rx = 0) => `<rect class="${c}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w}" height="${h}" rx="${rx}"/>`;
+      const head = (x, y) => C(x, y, 5.5, 's w') + P('k', `M${x - 5.6} ${y - 1} q1 -6.5 5.6 -6.6 q4.8 .1 5.6 6.6 q-2.6 -3 -5.6 -3.2 q-3 .2 -5.6 3.2z`);
+      const bag = (x, y) => R(x, y, 9, 7, 'f', 1.2) + L(x + 3, y, x + 3, y - 2) + L(x + 6, y, x + 6, y - 2) + L(x + 3, y - 2, x + 6, y - 2);
+
+      // poses: stand · wave · walk · sit (typing) · cheer · point
+      function man(x, y, pose, ph = 0, opt = {}) {
+        let g = '';
+        if (pose === 'sit') {
+          const lean = opt.tired ? 5 : 2;
+          g += L(x - 5, y - 14, x - 5, y - 32) + L(x - 7, y - 13, x + 9, y - 13) + L(x, y - 13, x, y);        // chair
+          g += L(x, y - 15, x + lean, y - 33) + L(x, y - 15, x + 12, y - 15) + L(x + 12, y - 15, x + 12, y);  // body + legs
+          const hy = ph ? 1.5 : 0;
+          g += L(x + lean, y - 29, x + 21, y - 27 + hy) + L(x + lean, y - 28, x + 19, y - 25 - hy);           // typing arms
+          g += head(x + lean + 2, y - (opt.tired ? 36 : 39));
+          return g;
+        }
+        const s = Math.sin(ph);
+        if (pose === 'walk') {
+          g += L(x, y - 16, x + 7 * s, y) + L(x, y - 16, x - 7 * s, y);
+          g += L(x, y - 30, x - 6 * s, y - 19) + L(x, y - 30, x + 6 * s, y - 19);
+          if (opt.bag) g += bag(x + 6 * s - 4, y - 19);
+        } else {
+          g += L(x, y - 16, x - 5, y) + L(x, y - 16, x + 5, y);
+          if (pose === 'wave') g += L(x, y - 30, x - 8, y - 20) + L(x, y - 30, x + (ph ? 6 : 11), y - 44);
+          else if (pose === 'cheer') g += L(x, y - 30, x - 9, y - (ph ? 45 : 42)) + L(x, y - 30, x + 9, y - (ph ? 42 : 45));
+          else if (pose === 'point') g += L(x, y - 30, x - 8, y - 20) + L(x, y - 30, x + 4, y - 47);
+          else g += L(x, y - 30, x - 8, y - 20) + L(x, y - 30, x + 8, y - 20);
+        }
+        g += L(x, y - 34, x, y - 16);
+        g += head(x, y - 40);
+        return g;
+      }
+      const indiaFlag = (x, y) => L(x, y, x, y - 16) + `<rect x="${x}" y="${y - 16}" width="11" height="2.6" fill="#F4A43C"/><rect x="${x}" y="${y - 13.4}" width="11" height="2.6" fill="#FFFFFF" stroke="#2C2B28" stroke-width=".3"/><rect x="${x}" y="${y - 10.8}" width="11" height="2.6" fill="#2E8B3E"/><circle cx="${x + 5.5}" cy="${y - 12.1}" r=".9" fill="none" stroke="#25408F" stroke-width=".5"/>`;
+      const usFlag = (x, y) => L(x, y, x, y - 16) + [0, 1, 2, 3, 4].map((k) => `<rect x="${x}" y="${y - 16 + k * 1.6}" width="12" height=".8" fill="#C8443A"/>`).join('') + `<rect x="${x}" y="${y - 16}" width="5" height="4" fill="#3A4A8C"/>`;
+      const palm = (x, y, sway = 0) => P('s', `M${x} ${y} Q${x - 3} ${y - 20} ${x + 3} ${y - 38}`) +
+        [[-16, 6], [16, 6], [-12, -12], [13, -14]].map(([dx, dy]) => P('s', `M${x + 3} ${y - 38} q${dx / 2} ${dy - 6 + sway} ${dx + sway} ${dy}`)).join('');
+      const cloud = (x, y) => P('s w', `M${x} ${y} q3 -7 10 -4 q5 -6 11 1 q6 0 5 6 h-27 q-3 -2 1 -3z`);
+      const easeBack = (t) => 1 + 2.4 * Math.pow(t - 1, 3) + 1.4 * Math.pow(t - 1, 2);
+
+      // ── scenes: each returns the SVG for local frame i of n ────────────
+      const SCENES = [
+        // 1 · India: waves goodbye at home, walks off with his suitcase
+        { n: 14, draw: (i) => {
+          let g = P('s', 'M4 104 Q80 100 156 104');
+          g += R(14, 66, 36, 38) + P('s', 'M10 68 L32 50 L54 68') + R(28, 86, 9, 18) + R(18, 74, 7, 7);
+          g += indiaFlag(32, 50);
+          g += palm(132, 104, i % 2 ? 1.5 : -1.5);
+          g += C(146, 17, 6.5, 'f') + [0, 1, 2, 3, 4, 5, 6, 7].map((k) => { const a = k * Math.PI / 4 + i * .2; return L(146 + Math.cos(a) * 9, 17 + Math.sin(a) * 9, 146 + Math.cos(a) * 12, 17 + Math.sin(a) * 12, 'a'); }).join('');
+          if (i < 5) g += man(76, 104, 'wave', i % 2) + bag(84, 97);
+          else g += man(76 + (i - 4) * 9.5, 104, 'walk', i * 1.4, { bag: true });
+          return g;
+        } },
+        // 2 · The flight: India → over the ocean → Statue of Liberty
+        { n: 14, draw: (i) => {
+          const t = i / 13;
+          let g = '';
+          const off = (i * 3) % 16;
+          g += `<g transform="translate(${-off} 0)">` + P('s', `M0 108 ${Array.from({ length: 12 }, () => 'q4 -4 8 0 t8 0').join(' ')}`) + '</g>';
+          g += P('s', 'M0 96 Q14 86 30 96') + palm(14, 92, 0).replace(/class="s"/g, 'class="s" transform="scale(1)"') ;
+          g += indiaFlag(22, 90);
+          g += P('s', 'M126 96 Q142 84 160 96');
+          g += L(146, 90, 146, 72) + C(146, 68, 3.2, 's w') + L(146, 74, 151, 60) + C(151.5, 58.5, 2.2, 'f') + P('s', 'M143 66 l-2 -3 M146 64.6 v-3.4 M149 66 l2 -3') + L(142, 90, 150, 90);
+          g += cloud(110 - i * 5, 22) + cloud(48 - i * 3, 36);
+          // dotted flight trail and the plane
+          const q = (u) => ({ x: 22 + 2 * (1 - u) * u * 58 + u * u * 124 - 0, y: (1 - u) * (1 - u) * 80 + 2 * (1 - u) * u * 4 + u * u * 62 });
+          const pts = Array.from({ length: Math.max(2, Math.round(t * 30)) }, (_, k) => q((k / 29) * 1)).filter((_, k) => k / 29 <= t);
+          if (pts.length > 1) g += `<path class="dots" d="M${pts.map((p) => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' L')}"/>`;
+          const p0 = q(t), p1 = q(Math.min(1, t + .02));
+          const ang = Math.atan2(p1.y - p0.y, p1.x - p0.x || .01) * 180 / Math.PI;
+          g += `<g transform="translate(${p0.x.toFixed(1)} ${p0.y.toFixed(1)}) rotate(${ang.toFixed(1)})"><path class="a" d="M-10 0 L8 -1.5 Q11 0 8 1.5 Z M-2 -1 L-6 -8 L-3 -8 L3 -1 M-2 1 L-6 8 L-3 8 L3 1 M-9 -.5 L-11 -4 L-9 -4 L-7 -.5" fill="#FBF8F1"/></g>`;
+          return g;
+        } },
+        // 3 · America: walks into the big city
+        { n: 9, draw: (i) => {
+          let g = L(0, 104, 160, 104);
+          [[6, 18, 52], [26, 14, 70], [42, 22, 42], [98, 16, 62], [116, 24, 82], [142, 14, 48]].forEach(([x, w, h]) => {
+            g += R(x, 104 - h, w, h, 's w');
+            for (let yy = 104 - h + 6; yy < 98; yy += 8) for (let xx = x + 3; xx < x + w - 3; xx += 5) g += R(xx, yy, 2, 3, (xx + yy + i) % 7 ? 's' : 'f');
+          });
+          g += usFlag(128, 22);
+          const x = Math.min(76, -6 + i * 11);
+          g += i < 8 ? man(x, 104, 'walk', i * 1.4, { bag: true }) : man(76, 104, 'stand') + bag(80, 97);
+          return g;
+        } },
+        // 4 · Working round the clock: days & nights fly by, coffee piles up
+        { n: 28, draw: (i) => {
+          const night = Math.floor(i / 3) % 2 === 1;
+          let g = L(0, 104, 160, 104);
+          g += `<rect x="12" y="12" width="38" height="28" fill="${night ? '#2E3550' : '#FFF1D6'}" stroke="#2C2B28" stroke-width="1.6"/>` + L(31, 12, 31, 40) + L(12, 26, 50, 26);
+          g += night
+            ? `<path d="M24 17 a5 5 0 1 0 4 8 a4 4 0 1 1 -4 -8z" fill="#FFF6EE"/>` + C(40, 18, .8, 'w') + C(44, 31, .7, 'w') + C(18, 34, .7, 'w')
+            : C(40, 20, 4.5, 'f');
+          g += C(132, 24, 11, 's w') + L(132, 24, 132 + Math.sin(i * .8) * 6, 24 - Math.cos(i * .8) * 6) + L(132, 24, 132 + Math.sin(i * 2.6) * 9, 24 - Math.cos(i * 2.6) * 9, 'a') + C(132, 24, 1, 'k');
+          g += L(64, 78, 152, 78) + L(70, 78, 70, 104) + L(146, 78, 146, 104);
+          g += L(92, 77, 112, 77) + `<path class="s" d="M93 77 L88 60" stroke-width="2.4"/>` + `<path d="M88.6 61 L92.4 75" stroke="${night ? '#EC5E27' : '#C9C2B3'}" stroke-width="1" />`;
+          const cups = Math.min(9, 1 + Math.floor(i / 3));
+          for (let k = 0; k < cups; k++) { const cx = 120 + (k % 4) * 7, cy = 70 - Math.floor(k / 4) * 8; g += R(cx, cy, 5, 7, 's w', 1); }
+          for (let k = 0; k < Math.floor(i / 2); k++) g += L(18, 102 - k * 2.2, 40, 102 - k * 2.2 - (k % 2) * .6);
+          g += man(68, 104, 'sit', i % 2, { tired: i > 16 && i % 4 < 2 });
+          if (i > 12 && i % 3 === 0) g += P('a', 'M84 60 q-2 3 0 4 q2 -1 0 -4z');
+          return g;
+        } },
+        // 5 · The idea: he stands up and a lightbulb lights
+        { n: 11, draw: (i) => {
+          let g = L(0, 104, 160, 104);
+          g += `<rect x="12" y="12" width="38" height="28" fill="#FFF1D6" stroke="#2C2B28" stroke-width="1.6"/>` + L(31, 12, 31, 40) + L(12, 26, 50, 26) + C(40, 20, 4.5, 'f');
+          g += L(64, 78, 152, 78) + L(70, 78, 70, 104) + L(146, 78, 146, 104) + L(92, 77, 112, 77) + `<path class="s" d="M93 77 L88 60" stroke-width="2.4"/>`;
+          if (i < 2) return g + man(68, 104, 'sit', 0, { tired: true });
+          g += man(56, 104, i >= 6 ? 'point' : 'stand');
+          const k = Math.min(1, (i - 2) / 4), lit = i >= 6, bx = 60, by = 34;
+          g += `<g transform="translate(${bx} ${by}) scale(${easeBack(k).toFixed(3)})"><path class="s" d="M0 -11 a9 9 0 0 1 5.5 16 v4 h-11 v-4 a9 9 0 0 1 5.5 -16z" fill="${lit ? '#EC5E27' : '#FBF8F1'}"/>` + L(-4, 11.5, 4, 11.5) + L(-3, 14, 3, 14) + '</g>';
+          if (lit) g += [0, 1, 2, 3, 4, 5, 6].map((r) => { const a = Math.PI + r * Math.PI / 6, l = i % 2 ? 7 : 4; return L(bx + Math.cos(a) * 14, by - 2 + Math.sin(a) * 14, bx + Math.cos(a) * (14 + l), by - 2 + Math.sin(a) * (14 + l), 'a'); }).join('');
+          return g;
+        } },
+        // 6 · Building the website, block by block
+        { n: 16, draw: (i) => {
+          let g = L(0, 104, 160, 104);
+          g += R(22, 14, 100, 64, 's w', 3) + P('s w', 'M12 86 H132 L124 78 H20 Z') + L(22, 22, 122, 22) + C(27, 18, 1, 'k') + C(31, 18, 1, 'k') + C(35, 18, 1, 'k');
+          if (i >= 1) g += R(28, 26, 10, 3, 'f') + L(92, 27.5, 116, 27.5);
+          if (i >= 3) g += `<path class="s" d="M28 36 H78" stroke-width="3"/>`;
+          if (i >= 4) g += `<path class="s" d="M28 42 H68" stroke-width="3"/>`;
+          if (i >= 6) g += R(28, 48, 56, 7, 's w', 3.5) + R(76, 49, 7, 5, 'f', 2.5);
+          for (let c = 0; c < 3; c++) if (i >= 8 + c) g += R(28 + c * 30, 60, 26, 13, 's w', 2);
+          if (i >= 12) { const k = Math.min(1, (i - 11) / 3); g += `<image href="https://www.jaithraya.com/logo.png" x="${(104 - 9 * k).toFixed(1)}" y="${(44 - 9 * k).toFixed(1)}" width="${(18 * k).toFixed(1)}" height="${(18 * k).toFixed(1)}"/>`; }
+          g += i >= 12 ? man(144, 104, 'cheer', i % 2) : man(144, 104, 'point');
+          return g;
+        } },
+        // 7 · The last page: Jaithraya
+        { n: 13, draw: (i) => {
+          const k = Math.min(1, (i + 1) / 5), sz = 64 * easeBack(k);
+          let g = '';
+          for (let c = 0; c < 16; c++) {
+            const a = c * Math.PI / 8 + .3, r = 12 + i * 4.2, o = Math.max(0, 1 - i / 13);
+            const x = 80 + Math.cos(a) * r, y = 54 + Math.sin(a) * r * .8;
+            g += c % 2 ? `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="3" height="1.6" transform="rotate(${c * 37 + i * 20} ${x.toFixed(1)} ${y.toFixed(1)})" fill="${c % 4 === 1 ? '#2C2B28' : '#EC5E27'}" opacity="${o.toFixed(2)}"/>` : `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="1.3" fill="#EC5E27" opacity="${o.toFixed(2)}"/>`;
+          }
+          g += `<image href="https://www.jaithraya.com/logo.png" x="${(80 - sz / 2).toFixed(1)}" y="${(54 - sz / 2).toFixed(1)}" width="${sz.toFixed(1)}" height="${sz.toFixed(1)}"/>`;
+          const u = Math.min(1, Math.max(0, (i - 3) / 6));
+          g += `<path class="a" d="M50 94 q30 9 60 -2" pathLength="1" stroke-dasharray="1" stroke-dashoffset="${(1 - u).toFixed(2)}" stroke-width="2.6"/>`;
+          return g;
+        } }
+      ];
+      const COVER = '<rect x="0" y="0" width="160" height="120" fill="#EC5E27"/><rect x="8" y="8" width="144" height="104" fill="none" stroke="#FFF6EE" stroke-opacity=".55" stroke-dasharray="3 3" rx="3"/>' +
+        '<path class="cw" d="M30 86 Q80 20 132 64" stroke-dasharray="0 5"/>' + '<g transform="translate(132 64) rotate(30)"><path class="cw" d="M-10 0 L8 -1.5 Q11 0 8 1.5 Z M-2 -1 L-6 -8 L-3 -8 L3 -1 M-2 1 L-6 8 L-3 8 L3 1"/></g>' +
+        '<rect x="22" y="86" width="16" height="12" rx="2" fill="#FFF6EE"/><path class="cw" d="M27 86 v-3 h6 v3"/>';
+
+      // flatten to a frame list, with a little pencil "boil" so every page is hand-drawn
+      const frames = [COVER];
+      SCENES.forEach((sc) => { for (let i = 0; i < sc.n; i++) frames.push(sc.draw(i)); });
+      const jitter = (f) => { const r = (n) => ((Math.sin(f * 12.9898 + n * 78.233) * 43758.5453) % 1); return `${(r(1) * .7).toFixed(2)} ${(r(2) * .7).toFixed(2)}`; };
+      const svgFor = (f) => f === 0
+        ? `<svg class="fb-svg" viewBox="0 0 160 120">${frames[0]}</svg>`
+        : `<svg class="fb-svg" viewBox="0 0 160 120"><g transform="translate(${jitter(f)})">${frames[f]}</g></svg>`;
+
+      // ── page curl engine ─────────────────────────────────────────────
+      // The page corner C (bottom-right, under the thumb) travels to P.
+      // Fold line = perpendicular bisector of C→P. The part beyond the fold
+      // is mirrored across it and shown as the paper's back (the curl).
+      const FRAME_MS = 110, LAST_HOLD = 2800, COVER_HOLD = 1300, FLIP_MS = 320;
+      const sheets = Array.from({ length: 5 }, () => {
+        const el = document.createElement('div');
+        el.className = 'fb-sheet';
+        el.innerHTML = '<div class="fb-sheet-front"><div class="fb-sheet-content"></div><div class="fb-sheet-shade"></div></div><div class="fb-sheet-backwrap"><div class="fb-sheet-back"></div></div>';
+        book.insertBefore(el, book.querySelector('.fb-thumb'));
+        return { el, front: el.firstChild, content: el.firstChild.firstChild, shade: el.firstChild.lastChild, wrap: el.lastChild, back: el.lastChild.firstChild, t0: 0, dur: FLIP_MS, busy: false };
+      });
+      let sheetIdx = 0, z = 10;
+      const active = new Set();
+
+      // keep the part of polygon `pts` where side(X) <= 0
+      const clip = (pts, side) => {
+        const out = [];
+        for (let k = 0; k < pts.length; k++) {
+          const A = pts[k], B = pts[(k + 1) % pts.length], sa = side(A), sb = side(B);
+          if (sa <= 0) out.push(A);
+          if ((sa < 0 && sb > 0) || (sa > 0 && sb < 0)) { const u = sa / (sa - sb); out.push([A[0] + (B[0] - A[0]) * u, A[1] + (B[1] - A[1]) * u]); }
+        }
+        return out;
+      };
+      const poly = (pts) => pts.length < 3 ? 'polygon(0 0, 0 0, 0 0)' : `polygon(${pts.map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`).join(',')})`;
+      const easeFlip = (t) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+      let bookW = 0, bookH = 0;
+      const sizeBook = () => { bookW = book.clientWidth; bookH = book.clientHeight; };
+      new ResizeObserver(sizeBook).observe(book);
+      function drawSheet(sh, t) {
+        if (!bookW) sizeBook();
+        const W = bookW, H = bookH;
+        const e = easeFlip(t);
+        const C = [W, H];
+        const P = [W - 2.02 * W * e, H - H * .62 * Math.sin(Math.PI * Math.min(1, e * 1.08))];
+        const dx = C[0] - P[0], dy = C[1] - P[1], len = Math.hypot(dx, dy);
+        if (len < .5) { sh.front.style.clipPath = 'none'; sh.wrap.style.display = 'none'; return; }
+        const n = [dx / len, dy / len], M = [(C[0] + P[0]) / 2, (C[1] + P[1]) / 2];
+        const rect = [[0, 0], [W, 0], [W, H], [0, H]];
+        const side = (X) => (X[0] - M[0]) * n[0] + (X[1] - M[1]) * n[1];
+        sh.front.style.clipPath = poly(clip(rect, side));
+        sh.wrap.style.display = '';
+        sh.wrap.style.width = W + 'px'; sh.wrap.style.height = H + 'px';
+        sh.back.style.clipPath = poly(clip(rect, (X) => -side(X)));
+        // reflection across the fold line
+        const ux = -n[1], uy = n[0];
+        const r00 = 2 * ux * ux - 1, r01 = 2 * ux * uy, r11 = 2 * uy * uy - 1;
+        const tx = M[0] - (r00 * M[0] + r01 * M[1]), ty = M[1] - (r01 * M[0] + r11 * M[1]);
+        sh.wrap.style.transform = `matrix(${r00.toFixed(4)},${r01.toFixed(4)},${r01.toFixed(4)},${r11.toFixed(4)},${tx.toFixed(2)},${ty.toFixed(2)})`;
+        // lighting: gradients run perpendicular to the fold
+        const ang = Math.atan2(n[0], -n[1]) * 180 / Math.PI;
+        const Lg = Math.abs(W * Math.sin(ang * Math.PI / 180)) + Math.abs(H * Math.cos(ang * Math.PI / 180));
+        const sF = (M[0] - W / 2) * n[0] + (M[1] - H / 2) * n[1] + Lg / 2;
+        const curl = len / 2;
+        sh.back.style.background = `linear-gradient(${ang.toFixed(1)}deg, #FFFDF8 ${sF.toFixed(1)}px, #EDE6D8 ${(sF + curl * .35).toFixed(1)}px, #DCD2BF ${(sF + curl).toFixed(1)}px)`;
+        sh.shade.style.background = `linear-gradient(${ang.toFixed(1)}deg, transparent ${(sF - Math.min(30, curl * .8)).toFixed(1)}px, rgba(40, 30, 15, .16) ${sF.toFixed(1)}px)`;
+        sh.el.style.opacity = t > .82 ? String(Math.max(0, 1 - (t - .82) / .18)) : '1';
+      }
+
+      const loop = (now) => {
+        active.forEach((sh) => {
+          const t = Math.min(1, (now - sh.t0) / sh.dur);
+          drawSheet(sh, t);
+          if (t >= 1) { sh.el.style.visibility = 'hidden'; sh.busy = false; active.delete(sh); }
+        });
+        book.classList.toggle('is-flipping', active.size > 0);
+        if (active.size) requestAnimationFrame(loop);
+      };
+
+      let f = 0, timer = null, running = false, paused = false, visible = true;
+      const show = (next) => {
+        if (!calm && f !== next) {
+          let sh = sheets[sheetIdx++ % sheets.length];
+          if (sh.busy) { active.delete(sh); }
+          sh.content.innerHTML = pageEl.innerHTML;
+          z = z >= 8000 ? 11 : z + 1;              // stay below the spine clip and thumb
+          sh.el.style.zIndex = String(z);
+          sh.el.style.visibility = 'visible';
+          sh.t0 = performance.now(); sh.dur = next === 1 ? FLIP_MS * 2 : FLIP_MS; sh.busy = true;
+          drawSheet(sh, 0);
+          if (!active.size) requestAnimationFrame(loop);
+          active.add(sh);
+        }
+        f = next;
+        pageEl.innerHTML = svgFor(f);
+      };
+
+      const schedule = (ms) => { clearTimeout(timer); timer = setTimeout(tick, ms); };
+      const BRAND_HOLD = 3600;   // logo + name card after the book ends
+      let brandShown = false;
+      const tick = () => {
+        if (!running) return;
+        if (paused || !visible || document.hidden) return schedule(300);
+        if (f < frames.length - 1) { show(f + 1); schedule(f === frames.length - 1 ? LAST_HOLD : FRAME_MS); }
+        else if (!brandShown) {
+          // book fades out, the Jaithraya logo + name animate in
+          brandShown = true;
+          browserPage.classList.remove('has-flipbook');
+          browserPage.classList.add('show-brand');
+          schedule(BRAND_HOLD);
+        } else {
+          // back to the closed book and play again
+          brandShown = false;
+          show(0);
+          browserPage.classList.remove('show-brand');
+          browserPage.classList.add('has-flipbook');
+          schedule(COVER_HOLD + 500);
+        }
+      };
+
+      laptop?.addEventListener('mouseenter', () => { paused = true; });
+      laptop?.addEventListener('mouseleave', () => { paused = false; });
+      if ('IntersectionObserver' in window) new IntersectionObserver(([en]) => { visible = en.isIntersecting; }, { threshold: .15 }).observe(stage);
+
+      show(calm ? frames.length - 1 : 0);
+      let started = false;
+      window.startHeroFlipbook = () => {
+        if (started) return; started = true;
+        setTimeout(() => {
+          browserPage.classList.add('fb-live');
+          if (calm) { browserPage.classList.add('show-brand'); return; }   // reduced motion: just logo + name
+          browserPage.classList.add('has-flipbook');
+          running = true;
+          schedule(COVER_HOLD + 400);
+        }, calm ? 0 : 5400);             // right after the lid opens and the browser loads
+      };
+    })();
+  </script>
+
+  <!-- ===================================================================== -->
+  <!-- JOIN WITH US: tabs, validation, submit + success                       -->
+  <!-- ===================================================================== -->
+  <script>
+    (function setupJoinCommunity() {
+      const section = document.getElementById('join-community');
+      if (!section) return;
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const form = document.getElementById('joinPanelJoin');
+      const panels = { join: form };
+      const success = document.getElementById('joinSuccess');
+
+      // reveal + run looping animations only while on screen
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(([en]) => section.classList.toggle('in-view', en.isIntersecting), { threshold: 0.15 }).observe(section);
+      } else section.classList.add('in-view');
+
+      function showForm(focus) {
+        success.hidden = true;
+        form.hidden = false;
+        if (focus) form.querySelector('input')?.focus({ preventScroll: true });
+      }
+
+      // navbar "Join the community": focus the first field once the scroll lands
+      document.querySelectorAll('[data-join-tab]').forEach((a) => a.addEventListener('click', () => {
+        showForm(false);
+        setTimeout(() => form.querySelector('input')?.focus({ preventScroll: true }), window.lenis ? 1300 : 700);
+      }));
+
+      // validation
+      const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+      function setErr(input, errId, msg) {
+        const box = input.closest('.jf');
+        const err = document.getElementById(errId);
+        if (box) { box.classList.remove('has-error'); if (msg) { void box.offsetWidth; box.classList.add('has-error'); } }
+        input.setAttribute('aria-invalid', msg ? 'true' : 'false');
+        if (msg) input.setAttribute('aria-describedby', errId); else input.removeAttribute('aria-describedby');
+        if (err) err.textContent = msg || '';
+        return !msg;
+      }
+      const rules = {
+        jfName: (v) => v.trim().length < 2 ? 'Please enter your name.' : '',
+        jfEmail: (v) => !EMAIL.test(v.trim()) ? 'Enter a valid email, like name@example.com.' : '',
+        jfRole: (v) => !v.trim() ? 'Tell us the role you want.' : '',
+        jfLinkedin: (v) => v.trim() && !/^(https?:\/\/)?([\w-]+\.)*linkedin\.com\/.+/i.test(v.trim()) ? 'That doesn’t look like a LinkedIn profile URL.' : '',
+      };
+      const check = (input) => setErr(input, input.id + 'Err', rules[input.id](input.value));
+      Object.keys(rules).forEach((id) => {
+        const el = document.getElementById(id);
+        el?.addEventListener('blur', () => { if (el.value) check(el); });
+        el?.addEventListener('input', () => { if (el.getAttribute('aria-invalid') === 'true') check(el); });
+      });
+      const visaErr = document.getElementById('jfVisaErr');
+      panels.join.querySelectorAll('input[name="visa"]').forEach((r) => r.addEventListener('change', () => { visaErr.textContent = ''; }));
+
+      // submit: POST to data-endpoint when one is set; otherwise just show success (no data is stored or sent)
+      async function submit(form, kind) {
+        const fields = [...form.querySelectorAll('input')].filter((i) => rules[i.id]);
+        let ok = fields.map(check).every(Boolean);
+        if (kind === 'join' && !form.querySelector('input[name="visa"]:checked')) { visaErr.textContent = 'Pick your current visa status.'; ok = false; }
+        if (!ok) { form.querySelector('[aria-invalid="true"], input[name="visa"]')?.focus(); return; }
+        const btn = form.querySelector('.join-submit');
+        btn.classList.add('is-loading');
+        btn.querySelector('.join-submit-label').textContent = kind === 'join' ? 'Joining…' : 'Signing in…';
+        try {
+          const endpoint = form.dataset.endpoint;
+          if (endpoint) {
+            const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(form))) });
+            if (!res.ok) throw new Error(res.status);
+          } else {
+            await new Promise((r) => setTimeout(r, 1100));
+          }
+          const first = (document.getElementById('jfName').value.trim().split(/\s+/)[0] || '');
+          document.getElementById('joinSuccessTitle').textContent = kind === 'join' ? `You're in${first ? ', ' + first : ''}!` : 'Welcome back!';
+          document.getElementById('joinSuccessText').textContent = kind === 'join'
+            ? 'Welcome to the Jaithraya community. Watch your inbox for this week’s sponsor-friendly job drop.'
+            : 'You’re signed in. Your dashboard and saved roles are ready.';
+          form.hidden = true;
+          success.hidden = false;
+          success.focus({ preventScroll: true });
+          if (!reduced) burst();
+          form.reset();
+        } catch (err) {
+          const e = form.querySelector('.jf-err');
+          if (e) e.textContent = 'Something went wrong. Please try again.';
+        } finally {
+          btn.classList.remove('is-loading');
+          btn.querySelector('.join-submit-label').textContent = kind === 'join' ? 'Join the community' : 'Sign in';
+        }
+      }
+      panels.join.addEventListener('submit', (e) => { e.preventDefault(); submit(panels.join, 'join'); });
+      document.getElementById('joinAgain').addEventListener('click', () => showForm(true));
+
+      // confetti burst from the check mark
+      function burst() {
+        const c = document.getElementById('joinConfetti');
+        const ctx = c.getContext('2d');
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = c.clientWidth, h = c.clientHeight;
+        c.width = w * dpr; c.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const colors = ['#EC5E27', '#FFB48F', '#F4F3EF', '#FFFFFF'];
+        const parts = Array.from({ length: 90 }, () => {
+          const a = Math.random() * Math.PI * 2, v = 3 + Math.random() * 7;
+          return { x: w / 2, y: 110, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 4, r: Math.random() * 6, vr: (Math.random() - .5) * .4, s: 4 + Math.random() * 5, c: colors[(Math.random() * 4) | 0], life: 1 };
+        });
+        const tick = () => {
+          ctx.clearRect(0, 0, w, h);
+          let alive = 0;
+          for (const p of parts) {
+            if (p.life <= 0) continue;
+            alive++;
+            p.vy += .22; p.vx *= .985; p.x += p.vx; p.y += p.vy; p.r += p.vr; p.life -= .012;
+            ctx.save(); ctx.globalAlpha = Math.max(0, p.life); ctx.translate(p.x, p.y); ctx.rotate(p.r);
+            ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); ctx.restore();
+          }
+          if (alive) requestAnimationFrame(tick); else ctx.clearRect(0, 0, w, h);
+        };
+        requestAnimationFrame(tick);
+      }
+
+    })();
+  </script>
+
+  <!-- ===================================================================== -->
+  <!-- PAINT CURSOR: Lusion-style "screen paint" trail behind the normal cursor -->
+  <!-- A velocity/weight field is painted at ¼ resolution along the mouse path, -->
+  <!-- self-advected with a blurred ⅛-res copy + curl noise, and displayed as a  -->
+  <!-- thin iridescent fringe. Re-implemented from observed behaviour/settings. -->
+  <!-- ===================================================================== -->
+  <script>
+    (function setupPaintCursor() {
+      const CONFIG = {
+        // painting (lusion.co home defaults)
+        minRadius: 0, maxRadius: 100, radiusDistanceRange: 100,   // px; trail width grows with mouse speed
+        pushStrength: 25,                                         // how far the trail drifts along its own flow
+        accelerationDissipation: 0.8,
+        velocityDissipation: 0.975, weight1Dissipation: 0.95, weight2Dissipation: 0.8,
+        curlScale: 0.02, curlStrength: 3,                         // wispy curl noise in the flow
+        // look
+        rgbShift: 0.5,                                            // spread of the iridescent hues
+        colorMultiplier: 10, shade: 1.25,
+        opacity: 0.35,                                            // strength of the colour shift (0–1)
+        light: 5,                                                 // glassy highlight/shadow on the trail
+        maxAlpha: 1,
+      };
+
+      const canvas = document.getElementById('paintCursor');
+      const fine = window.matchMedia('(pointer: fine)').matches;
+      const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!canvas || !fine || calm) { canvas?.remove(); return; }
+      const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false });
+      if (!gl || !gl.getExtension('EXT_color_buffer_float')) { canvas.remove(); return; }
+
+      // ── shaders ────────────────────────────────────────────────────
+      const VERT = `#version 300 es
+        in vec2 aPos; out vec2 vUv;
+        void main(){ vUv = aPos * .5 + .5; gl_Position = vec4(aPos, 0., 1.); }`;
+      const HEAD = `#version 300 es
+        precision highp float; in vec2 vUv; out vec4 outColor;`;
+      const SRC = {
+        // one simulation step of the paint field: rg = velocity (0.5 = still), b/a = two fading weights
+        paint: HEAD + `
+          uniform sampler2D uPrev, uLow; uniform vec2 uTexel, uScroll, uVel;
+          uniform vec4 uFrom, uTo;            // xy = paint px, z = radius px, w = weight
+          uniform float uPush, uCurlScale, uCurlStrength; uniform vec3 uFade;
+          vec2 hash2(vec2 p){ p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3))); return fract(sin(p) * 43758.5453) * 2. - 1.; }
+          float gnoise(vec2 p){ vec2 i = floor(p), f = fract(p), u = f * f * (3. - 2. * f);
+            return mix(mix(dot(hash2(i), f), dot(hash2(i + vec2(1, 0)), f - vec2(1, 0)), u.x),
+                       mix(dot(hash2(i + vec2(0, 1)), f - vec2(0, 1)), dot(hash2(i + vec2(1)), f - vec2(1)), u.x), u.y); }
+          vec2 curl(vec2 p){ float e = .5;     // divergence-free swirl from noise gradient
+            return vec2(gnoise(p + vec2(0, e)) - gnoise(p - vec2(0, e)), gnoise(p - vec2(e, 0)) - gnoise(p + vec2(e, 0))) / (2. * e); }
+          void main(){
+            vec2 px = gl_FragCoord.xy;
+            vec2 ab = uTo.xy - uFrom.xy; float t = clamp(dot(px - uFrom.xy, ab) / max(dot(ab, ab), 1e-4), 0., 1.);
+            float dist = length(px - uFrom.xy - ab * t);
+            vec2 rw = mix(uFrom.zw, uTo.zw, t);
+            float stamp = 1. - smoothstep(-.01, rw.x, dist);
+            vec4 low = texture(uLow, vUv - uScroll);
+            vec2 back = (.5 - low.xy) * uPush + curl(px * uCurlScale * (1. + low.xy)) * (low.z + low.w) * uCurlStrength;
+            vec4 d = texture(uPrev, vUv - uScroll + back * uTexel);
+            d.xy -= .5;
+            vec4 change = (vec4(uFade.xx, uFade.yz) - 1.) * d + vec4(uVel * stamp, rw.yy * stamp);
+            change.zw = sign(change.zw) * max(vec2(.004), abs(change.zw));
+            d += change; d.xy += .5;
+            outColor = clamp(d, 0., 1.);
+          }`,
+        copy: HEAD + `uniform sampler2D uTex; void main(){ outColor = texture(uTex, vUv); }`,
+        blur: HEAD + `uniform sampler2D uTex; uniform vec2 uDir;
+          void main(){ vec4 c = texture(uTex, vUv) * .227;
+            c += (texture(uTex, vUv + uDir * 1.385) + texture(uTex, vUv - uDir * 1.385)) * .316;
+            c += (texture(uTex, vUv + uDir * 3.231) + texture(uTex, vUv - uDir * 3.231)) * .07;
+            outColor = c; }`,
+        clear: HEAD + `void main(){ outColor = vec4(.5, .5, 0., 0.); }`,
+        // what you see: an iridescent fringe where the trail moves and thins out
+        show: HEAD + `uniform sampler2D uPaint; uniform vec2 uTexel; uniform float uRgbShift, uColorMul, uShade, uOpacity, uMaxAlpha, uLight;
+          float wt(vec2 uv){ vec4 q = texture(uPaint, uv); return (q.z + q.w) * .5; }
+          vec2 vl(vec2 uv){ vec4 q = texture(uPaint, uv); return (.5 - q.xy - .001) * 2. * (q.z + q.w) * .5; }
+          void main(){
+            vec4 d = texture(uPaint, vUv);
+            float w = (d.z + d.w) * .5;
+            // slope of the trail → a raised, glassy ribbon (highlight on one side, soft shadow on the other)
+            vec2 e = uTexel * 1.5;
+            vec2 grad = vec2(wt(vUv + vec2(e.x, 0.)) - wt(vUv - vec2(e.x, 0.)), wt(vUv + vec2(0., e.y)) - wt(vUv - vec2(0., e.y)));
+            float lit = dot(grad, normalize(vec2(-.55, .85))) * uLight;
+            vec2 v = (.5 - d.xy - .001) * 2. * w;
+            float m = max(abs(v.x), abs(v.y));
+            // iridescent colour (phase from motion direction), strongest at the trail's edges and tail
+            // average the motion over neighbours so the colour bands stay smooth (no speckle at the trail head)
+            vec2 vs = (v + vl(vUv + vec2(e.x, 0.)) + vl(vUv - vec2(e.x, 0.)) + vl(vUv + vec2(0., e.y)) + vl(vUv - vec2(0., e.y))) * .2;
+            vec3 rainbow = sin(vec3(vs.x + vs.y) * 40. + vec3(0., 2., 4.) * uRgbShift) * smoothstep(1.2, .3, max(abs(vs.x), abs(vs.y)));
+            float fringe = smoothstep(.4, -.9, w) * uShade * m * uColorMul * .35 + length(grad) * 2.2;
+            vec3 shift = vec3(lit) + rainbow * fringe;
+            vec3 col = clamp(.5 + .5 * shift * uOpacity, 0., 1.);  // 0.5 = leaves the page untouched
+            float a = clamp(w * 4. + m * 6., 0., uMaxAlpha);
+            outColor = vec4(col * a, a);
+          }`,
+      };
+      const sh = (type, src) => { const o = gl.createShader(type); gl.shaderSource(o, src); gl.compileShader(o);
+        if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
+      let P;
+      try {
+        const vs = sh(gl.VERTEX_SHADER, VERT);
+        P = Object.fromEntries(Object.entries(SRC).map(([k, f]) => {
+          const pr = gl.createProgram(); gl.attachShader(pr, vs); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, f));
+          gl.bindAttribLocation(pr, 0, 'aPos'); gl.linkProgram(pr);
+          if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(pr));
+          const u = {}; for (let i = 0, n = gl.getProgramParameter(pr, gl.ACTIVE_UNIFORMS); i < n; i++) { const nm = gl.getActiveUniform(pr, i).name; u[nm] = gl.getUniformLocation(pr, nm); }
+          return [k, { use: () => gl.useProgram(pr), u }];
+        }));
+      } catch (e) { canvas.remove(); return; }
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+      gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0); gl.enableVertexAttribArray(0);
+      gl.disable(gl.BLEND);
+
+      const target = (w, h) => {
+        const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, w, h, 0, gl.RGBA, gl.HALF_FLOAT, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        const fb = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+        return { tex, fb, w, h };
+      };
+      const draw = (t) => {
+        if (t) { gl.bindFramebuffer(gl.FRAMEBUFFER, t.fb); gl.viewport(0, 0, t.w, t.h); }
+        else { gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, canvas.width, canvas.height); }
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      };
+      const bind = (unit, t) => { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t.tex); return unit; };
+
+      let W = 0, H = 0, prev, curr, low, lowTmp;
+      function clearAll() { P.clear.use(); [prev, curr, low, lowTmp].forEach(draw); }
+      function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        W = window.innerWidth; H = window.innerHeight;
+        canvas.width = Math.floor(W * dpr); canvas.height = Math.floor(H * dpr);
+        const pw = Math.max(1, W >> 2), ph = Math.max(1, H >> 2);           // paint ¼ res
+        prev = target(pw, ph); curr = target(pw, ph);
+        low = target(Math.max(1, W >> 3), Math.max(1, H >> 3)); lowTmp = target(low.w, low.h);   // ⅛ res
+        clearAll();
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      // ── input ──────────────────────────────────────────────────────
+      const m = { x: 0, y: 0, px: 0, py: 0, has: false };
+      let from = [0, 0, 0, 0], to = [0, 0, 0, 0], vel = [0, 0];
+      let lastY = window.scrollY, lastActive = 0, running = false, last = 0;
+      const wake = () => { lastActive = performance.now(); if (!running && !document.hidden) { running = true; canvas.classList.add('is-live'); last = performance.now(); lastY = window.scrollY; requestAnimationFrame(frame); } };
+      window.addEventListener('pointermove', (e) => {
+        if (e.pointerType && e.pointerType !== 'mouse') return;
+        if (!m.has) { m.px = e.clientX; m.py = e.clientY; m.has = true; }
+        m.x = e.clientX; m.y = e.clientY; wake();
+      }, { passive: true });
+      // click: a quick swirl of paint around the click point
+      const swirl = { left: 0, cx: 0, cy: 0, a: 0 };
+      window.addEventListener('pointerdown', (e) => {
+        if (e.pointerType && e.pointerType !== 'mouse') return;
+        if (!m.has) { m.x = m.px = e.clientX; m.y = m.py = e.clientY; m.has = true; }
+        Object.assign(swirl, { left: 14, cx: e.clientX, cy: e.clientY, a: Math.random() * Math.PI * 2 });
+        wake();
+      }, { passive: true });
+      document.addEventListener('visibilitychange', () => { if (!document.hidden && m.has) wake(); });
+
+      function frame(now) {
+        const dt = Math.min((now - last) / 1000, 1 / 30); last = now;
+        const pw = curr.w, ph = curr.h;
+        // page scroll carries the paint with the content
+        const sy = window.scrollY, scrollDy = sy - lastY; lastY = sy;
+        const scrollUv = scrollDy / H;
+        // trail width comes only from mouse movement (scrolling never paints)
+        let px = m.x, py = m.y, moved = Math.hypot(m.x - m.px, m.y - m.py);
+        if (swirl.left > 0) {                        // click swirl: trace a small spiral round the click point
+          swirl.left--; swirl.a += 0.75;
+          const rad = 18 + (14 - swirl.left) * 3;
+          px = swirl.cx + Math.cos(swirl.a) * rad; py = swirl.cy + Math.sin(swirl.a) * rad;
+          moved = 70;
+        }
+        let r = CONFIG.minRadius + (CONFIG.maxRadius - CONFIG.minRadius) * Math.min(1, moved / CONFIG.radiusDistanceRange);
+        if (!m.has || moved === 0) r = 0;
+        r = r / H * ph;
+        from = to.slice();
+        to = [px / W * pw, (1 - py / H) * ph, r, 1];
+        if (swirl.left === 13) from = to.slice();   // don't streak from the old mouse spot into the swirl
+        if (from[3] === 0) from = to.slice();
+        vel = [vel[0] * CONFIG.accelerationDissipation + (to[0] - from[0]) * dt * 0.8,
+               vel[1] * CONFIG.accelerationDissipation + (to[1] - from[1]) * dt * 0.8];
+        m.px = m.x; m.py = m.y;
+
+        // simulate
+        [prev, curr] = [curr, prev];
+        P.paint.use();
+        gl.uniform1i(P.paint.u.uPrev, bind(0, prev)); gl.uniform1i(P.paint.u.uLow, bind(1, low));
+        gl.uniform2f(P.paint.u.uTexel, 1 / pw, 1 / ph); gl.uniform2f(P.paint.u.uScroll, 0, -scrollUv);
+        gl.uniform4f(P.paint.u.uFrom, ...from); gl.uniform4f(P.paint.u.uTo, ...to);
+        gl.uniform2f(P.paint.u.uVel, vel[0], vel[1]);
+        gl.uniform1f(P.paint.u.uPush, CONFIG.pushStrength);
+        gl.uniform1f(P.paint.u.uCurlScale, CONFIG.curlScale); gl.uniform1f(P.paint.u.uCurlStrength, CONFIG.curlStrength);
+        gl.uniform3f(P.paint.u.uFade, CONFIG.velocityDissipation, CONFIG.weight1Dissipation, CONFIG.weight2Dissipation);
+        draw(curr);
+        // blurred low-res copy that drives the flow next frame
+        P.copy.use(); gl.uniform1i(P.copy.u.uTex, bind(0, curr)); draw(low);
+        P.blur.use();
+        gl.uniform1i(P.blur.u.uTex, bind(0, low)); gl.uniform2f(P.blur.u.uDir, 1 / low.w, 0); draw(lowTmp);
+        gl.uniform1i(P.blur.u.uTex, bind(0, lowTmp)); gl.uniform2f(P.blur.u.uDir, 0, 1 / low.h); draw(low);
+        // show
+        P.show.use();
+        gl.uniform1i(P.show.u.uPaint, bind(0, curr)); gl.uniform2f(P.show.u.uTexel, 1 / pw, 1 / ph); gl.uniform1f(P.show.u.uLight, CONFIG.light);
+        gl.uniform1f(P.show.u.uRgbShift, CONFIG.rgbShift); gl.uniform1f(P.show.u.uColorMul, CONFIG.colorMultiplier);
+        gl.uniform1f(P.show.u.uShade, CONFIG.shade); gl.uniform1f(P.show.u.uOpacity, CONFIG.opacity);
+        gl.uniform1f(P.show.u.uMaxAlpha, CONFIG.maxAlpha);
+        draw(null);
+
+        // sleep ~2.5s after the last mouse move / scroll (the trail has faded by then)
+        if (document.hidden || now - lastActive > 2500) {
+          running = false; canvas.classList.remove('is-live'); clearAll();
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, canvas.width, canvas.height);
+          gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+          to[3] = 0; vel = [0, 0];
+          return;
+        }
+        requestAnimationFrame(frame);
+      }
+    })();
+  </script>
   <!-- ===================================================================== -->
   <!-- SMOOTH SCROLL: Lenis, driven by GSAP's ticker so pinned sections stay in sync -->
   <!-- ===================================================================== -->
@@ -6608,7 +7735,7 @@
       }
 
       /* ---------- autoplay: pauses on hover, focus, off-screen, hidden tab, or the pause button ---------- */
-      const INTERVAL = 2000;   // ms each screenshot stays in front before rotating
+      const INTERVAL = 1500;   // ms each screenshot stays in front before rotating
       let timer = 0, userPaused = reduced, hovering = false, focused = false, visible = false;
       const shouldRun = () => !userPaused && !hovering && !focused && visible && !document.hidden;
       function schedule() {
@@ -6638,8 +7765,24 @@
         if (e.key === 'ArrowLeft') { e.preventDefault(); go(active - 1, true); }
         if (e.key === 'ArrowRight') { e.preventDefault(); go(active + 1, true); }
       });
-      carousel.addEventListener('mouseenter', () => { hovering = true; schedule(); });
-      carousel.addEventListener('mouseleave', () => { hovering = false; schedule(); });
+      // Pause only while the mouse is on a visible screenshot; resume as soon as it leaves.
+      // (Hit-test by geometry: the 3D track sits above the cards for elementFromPoint.)
+      const setHover = (on) => {
+        if (on === hovering) return;
+        hovering = on;
+        carousel.classList.toggle('is-hover-paused', on);
+        schedule();
+      };
+      carousel.addEventListener('pointermove', (e) => {
+        if (e.pointerType && e.pointerType !== 'mouse') return;
+        const over = slides.some((sl) => {
+          if (parseFloat(sl.style.opacity || '1') < 0.3) return false;
+          const b = sl.querySelector('.offer-shot').getBoundingClientRect();
+          return e.clientX >= b.left && e.clientX <= b.right && e.clientY >= b.top && e.clientY <= b.bottom;
+        });
+        setHover(over);
+      }, { passive: true });
+      carousel.addEventListener('pointerleave', () => setHover(false));
       carousel.addEventListener('focusin', () => { focused = true; schedule(); });
       carousel.addEventListener('focusout', (e) => { if (!carousel.contains(e.relatedTarget)) { focused = false; schedule(); } });
       document.addEventListener('visibilitychange', schedule);
@@ -6690,8 +7833,10 @@
         return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3;
       };
 
+      let mainPageTop = 0;   // main's top in page coordinates, refreshed on build()
       function build() {
         const mainRect = main.getBoundingClientRect();
+        mainPageTop = mainRect.top + window.scrollY;
         const W = main.clientWidth;
         const H = main.scrollHeight;
         const vh = window.innerHeight;
@@ -6824,7 +7969,7 @@
       let ticking = false, last = performance.now();
       function target() {
         const vh = window.innerHeight;
-        const mainTop = main.getBoundingClientRect().top;   // viewport-relative
+        const mainTop = mainPageTop - window.scrollY;      // viewport-relative, no layout read
         const follow = lengthForY(-mainTop + vh * 0.62);
         // Nothing is drawn at the very top; the line slides in from the right
         // as soon as scrolling starts and catches up over the first ~60% of a screen.
@@ -7072,7 +8217,7 @@
         if (!confetti.running) { confetti.running = true; requestAnimationFrame(tickConfetti); }
       }
       function tickConfetti() {
-        cctx.clearRect(0, 0, stage.clientWidth, stage.clientHeight);
+        cctx.clearRect(0, 0, cctx.canvas.width, cctx.canvas.height);
         confetti.parts = confetti.parts.filter((c) => c.life > 0);
         for (const c of confetti.parts) {
           c.vy += 0.28; c.vx *= 0.985; c.x += c.vx; c.y += c.vy; c.r += c.vr; c.life -= 0.006;
@@ -7084,15 +8229,24 @@
           cctx.restore();
         }
         if (confetti.parts.length) requestAnimationFrame(tickConfetti);
-        else { confetti.running = false; cctx.clearRect(0, 0, stage.clientWidth, stage.clientHeight); }
+        else { confetti.running = false; cctx.clearRect(0, 0, cctx.canvas.width, cctx.canvas.height); }
       }
 
       /* ---------- pinning + smoothed progress ---------- */
       let target = 0, current = 0, pinState = '', ticking = false, last = performance.now();
+      // geometry cached (re-measured on resize / when content above changes size)
+      let secTop = 0, secH = 1, vhC = window.innerHeight;
+      const measure = () => {
+        secTop = section.getBoundingClientRect().top + window.scrollY;
+        secH = section.offsetHeight; vhC = window.innerHeight;
+      };
+      measure();
+      new ResizeObserver(() => { measure(); request(); }).observe(document.body);
       function readScroll() {
-        const r = section.getBoundingClientRect();
-        const vh = window.innerHeight;
-        const total = section.offsetHeight - vh;
+        const vh = vhC;
+        const top = secTop - window.scrollY;
+        const r = { top, bottom: top + secH };
+        const total = secH - vh;
         target = clamp(-r.top / total, 0, 1);
         const state = r.top > 0 ? 'before' : r.bottom < vh ? 'after' : 'fixed';
         if (state !== pinState) {
@@ -7117,7 +8271,7 @@
         requestAnimationFrame(loop);
       }
       window.addEventListener('scroll', request, { passive: true });
-      window.addEventListener('resize', () => { layout(); request(); });
+      window.addEventListener('resize', () => { layout(); measure(); request(); });
       layout();
       readScroll();
       current = target;
