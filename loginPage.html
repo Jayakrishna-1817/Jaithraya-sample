@@ -134,7 +134,8 @@
       max-width: 1320px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px); min-height: calc(100svh - 80px); }
     .lp-layout .lp-stage { max-width: none; margin: 0; padding: 24px 0 48px; min-height: min(760px, calc(100svh - 80px)); grid-template-columns: minmax(0, 1fr) minmax(340px, 410px); }
     .lp-layout .lp-card { grid-column: 2; }
-    #scene { overflow: hidden; }
+    #scene { overflow: hidden; visibility: hidden; }          /* shown only once the character has been positioned */
+    #scene.is-ready { visibility: visible; }
     @media (max-width: 899px) { #scene { overflow: visible; } }
     .lp-story { padding: 24px 0 48px; }
     .ls-eyebrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 22px; font: 600 12px/1.4 'Geist Mono', monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--brand-text); }
@@ -703,11 +704,12 @@
         return p;
       }
 
-      let last = performance.now(), raf = 0;
+      let last = performance.now(), raf = 0, frameN = 0;
       function frame(ts) {
         const dt = Math.min(0.05, (ts - last) / 1000); last = ts;
         const t = now();
         if (!L.ready) layout();
+        if ((++frameN % 30) === 0) relayout();
         let p;
         if (phase === 'intro') {
           p = introPose(t);
@@ -729,6 +731,7 @@
         apply(p, t);
         drawCase();
         drawPop(t);
+        if (!svg.classList.contains('is-ready')) svg.classList.add('is-ready');
         // finger-snap sparks
         if (sparkT >= 0) {
           const u = (t - sparkT) / 0.45;
@@ -744,8 +747,16 @@
       const start = () => { cancelAnimationFrame(raf); last = performance.now(); raf = requestAnimationFrame(frame); };
       document.addEventListener('visibilitychange', () => { if (active && !document.hidden) start(); });
       let rt; window.addEventListener('resize', () => { if (!active) return; clearTimeout(rt); rt = setTimeout(() => { layout(); if (phase === 'live') cur = null; }, 120); });
+      // the card can still move after the intro starts (web fonts swapping in, the story column laying out, a slow first load):
+      // watch its box and re-measure the ground line the moment it changes, so the character always stands on it
+      let geo = '';
+      const geoNow = () => [stage.clientWidth, stage.clientHeight, card.offsetLeft, card.offsetTop, card.offsetWidth, card.offsetHeight, window.innerWidth < 900].join(',');
+      const relayout = () => { if (!active) return; const g = geoNow(); if (g !== geo) { geo = g; layout(); } };
+      if ('ResizeObserver' in window) { const ro = new ResizeObserver(relayout); ro.observe(stage); ro.observe(card); }
+      window.addEventListener('load', relayout);
+      document.fonts?.addEventListener?.('loadingdone', relayout);
 
-      const begin = () => { layout(); if (reduced) finishIntro(); else { skipBtn.hidden = false; clock0 = performance.now() < 1200 ? 0 : performance.now(); } start(); };
+      const begin = () => { layout(); geo = geoNow(); if (reduced) finishIntro(); else { skipBtn.hidden = false; clock0 = performance.now() < 1200 ? 0 : performance.now(); } start(); };
       window.__startToon = () => {
         if (active) return; active = true;
         window.__jtSceneReady = true; window.__jtScene = toonScene; svg.style.display = '';
