@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sign in · Jaithraya</title>
+  <meta name="description" content="Sign in to your Jaithraya job board: today's jobs, every application we've sent, and a screenshot of each one.">
+  <meta name="theme-color" content="#F4F3EF">
+  <link rel="icon" href="https://www.jaithraya.com/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;600&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/framer-motion@14.14.0/dist/dom.js" defer></script>
+  <script type="importmap">
+    { "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    } }
+  </script>
+  <style>
+    :root {
+      --ink: #111514; --ink-2: #27302D; --muted: #5E6A66; --bg: #F4F3EF; --surface: #FFFFFF; --line: #DCD7CC;
+      --brand: #EC5E27; --brand-ui: #C0521F; --brand-ui-hover: #A9461A; --brand-text: #A9461A;
+      --danger: #B42318; --danger-bg: #FEF3F2; --success: #1F7A4D;
+      --radius: 24px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      background:
+        radial-gradient(60% 55% at 72% 46%, rgba(236, 94, 39, .10), transparent 70%),
+        radial-gradient(40% 40% at 18% 80%, rgba(169, 154, 216, .10), transparent 70%),
+        var(--bg);
+      color: var(--ink); font: 400 16px/1.5 'Geist', system-ui, sans-serif; -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    a { color: inherit; }
+    [hidden] { display: none !important; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+    /* ── top bar ── */
+    .lp-top { position: relative; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 1320px; margin: 0 auto; padding: 18px clamp(16px, 4vw, 40px); }
+    .lp-brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font: 800 19px/1 'Sora', sans-serif; letter-spacing: -.04em; }
+    .lp-brand img { width: 34px; height: 34px; object-fit: contain; }
+    .lp-join { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(17,21,20,.16); background: rgba(255,255,255,.7);
+      font: 500 14px/1 'Geist', sans-serif; color: var(--ink-2); text-decoration: none; transition: border-color .2s ease, background-color .2s ease; }
+    .lp-join b { color: var(--brand-text); font-weight: 700; }
+    .lp-join:hover { border-color: var(--ink); background: #fff; }
+
+    /* ── stage: 3D scene over the whole area, card in the grid ── */
+    .lp-stage { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 420px) minmax(0, .6fr); align-items: center;
+      min-height: calc(100svh - 80px); max-width: 1240px; margin: 0 auto; padding: 24px clamp(16px, 4vw, 40px) 48px; }
+    #scene { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; display: block; overflow: visible; }
+    .lp-card { grid-column: 2; position: relative; z-index: 2; width: 100%; padding: 34px 32px 28px; border-radius: var(--radius); background: var(--surface);
+      border: 1px solid rgba(17,21,20,.08); box-shadow: 0 1px 0 rgba(255,255,255,.8) inset, 0 40px 80px -40px rgba(17,21,20,.35), 0 12px 24px -18px rgba(17,21,20,.2);
+      opacity: 0; transform: scale(.06); transform-origin: 50% 50%; will-change: transform, opacity; }
+    .lp-card.is-shown { opacity: 1; transform: none; }
+    .no-scene .lp-card { transition: opacity .5s ease, transform .6s cubic-bezier(.16,1,.3,1); }
+
+    .lc-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
+    .lc-logo img { width: 30px; height: 30px; object-fit: contain; }
+    .lc-logo span { font: 800 17px/1 'Sora', sans-serif; letter-spacing: -.04em; }
+    .lc-title { margin: 0; font: 800 clamp(26px, 3vw, 32px)/1.1 'Sora', sans-serif; letter-spacing: -.035em; }
+    .lc-sub { margin: 8px 0 24px; color: var(--muted); font-size: 15px; }
+
+    .fld { position: relative; margin-bottom: 14px; }
+    .fld input { width: 100%; height: 58px; padding: 22px 46px 8px 44px; border-radius: 14px; border: 1.5px solid var(--line); background: #FCFBF9; color: var(--ink);
+      font: 500 16px/1 'Geist', sans-serif; outline: none; transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease; }
+    .fld input:hover { border-color: #C9C2B5; }
+    .fld input:focus { border-color: var(--brand-ui); background: #fff; box-shadow: 0 0 0 4px rgba(236, 94, 39, .14); }
+    .fld label { position: absolute; left: 44px; top: 19px; color: var(--muted); font: 500 15px/1 'Geist', sans-serif; pointer-events: none; transform-origin: left top;
+      transition: transform .2s cubic-bezier(.16,1,.3,1), color .2s ease; }
+    .fld input:focus + label, .fld input:not(:placeholder-shown) + label { transform: translateY(-10px) scale(.76); }
+    .fld input:focus + label { color: var(--brand-ui); }
+    .fld .fld-ic { position: absolute; left: 15px; top: 19px; font-size: 19px; color: #8C9590; pointer-events: none; transition: color .2s ease; }
+    .fld input:focus ~ .fld-ic { color: var(--brand-ui); }
+    .fld.has-error input { border-color: var(--danger); box-shadow: 0 0 0 4px rgba(180, 35, 24, .1); }
+    .fld-err { margin: 6px 4px 0; color: var(--danger); font-size: 13px; }
+    .eye { position: absolute; right: 6px; top: 7px; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 12px; background: none; color: #6E7874; font-size: 20px; cursor: pointer; }
+    .eye:hover { color: var(--ink); background: rgba(17,21,20,.05); }
+    .caps { display: flex; align-items: center; gap: 6px; margin: -6px 4px 12px; color: #9A5B00; font-size: 13px; font-weight: 600; }
+
+    .lc-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 20px; font-size: 14px; }
+    .chk { display: inline-flex; align-items: center; gap: 9px; min-height: 44px; cursor: pointer; color: var(--ink-2); }
+    .chk input { appearance: none; -webkit-appearance: none; width: 20px; height: 20px; margin: 0; border-radius: 6px; border: 1.5px solid #B9B2A6; background: #fff; display: grid; place-items: center; cursor: pointer; transition: background-color .15s ease, border-color .15s ease; }
+    .chk input::after { content: ''; width: 10px; height: 6px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg) translate(1px, -1px) scale(0); transition: transform .2s cubic-bezier(.34,1.56,.64,1); }
+    .chk input:checked { background: var(--brand-ui); border-color: var(--brand-ui); }
+    .chk input:checked::after { transform: rotate(-45deg) translate(1px, -1px) scale(1); }
+    .lc-link { color: var(--brand-text); font-weight: 600; text-decoration: none; padding: 10px 0; }
+    .lc-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+    .lc-submit { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; height: 54px; border: 0; border-radius: 999px;
+      background: var(--brand-ui); color: #fff; font: 700 16px/1 'Geist', sans-serif; cursor: pointer; overflow: hidden; isolation: isolate;
+      box-shadow: 0 16px 30px -16px rgba(192, 82, 31, .8); transition: background-color .2s ease, transform .25s cubic-bezier(.16,1,.3,1), box-shadow .25s ease; }
+    .lc-submit::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,.25) 50%, transparent 80%); transform: translateX(-120%); transition: transform .7s ease; }
+    .lc-submit:hover { background: var(--brand-ui-hover); transform: translateY(-1px); }
+    .lc-submit:hover::before { transform: translateX(120%); }
+    .lc-submit:disabled { cursor: progress; opacity: .85; transform: none; }
+    .spin { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.4); border-top-color: #fff; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .lc-alert { display: flex; gap: 8px; align-items: flex-start; margin: 0 0 14px; padding: 12px 14px; border-radius: 12px; background: var(--danger-bg); border: 1px solid #FECDCA; color: var(--danger); font-size: 14px; font-weight: 500; }
+    .lc-alert.is-info { background: #F1F6FC; border-color: #C9DBF0; color: #1E4D78; }
+    .lc-foot { margin: 22px 0 0; text-align: center; color: var(--muted); font-size: 14px; }
+    :is(.lp-brand, .lp-join, .lc-link, .lc-submit, .eye, .chk input, .lp-skip):focus-visible { outline: 2px solid var(--brand-ui); outline-offset: 3px; }
+
+    .lp-skip { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); z-index: 6; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px;
+      border: 1px solid rgba(17,21,20,.14); border-radius: 999px; background: rgba(255,255,255,.85); backdrop-filter: blur(6px); color: var(--ink-2); font: 600 13px/1 'Geist', sans-serif; cursor: pointer;
+      transition: opacity .3s ease, transform .3s ease; }
+    .lp-skip[hidden] { display: none; }
+    .lp-skip:hover { background: #fff; border-color: var(--ink); }
+
+    /* ── phones & small tablets: character stands on top of the card ── */
+    @media (max-width: 899px) {
+      .lp-stage { grid-template-columns: minmax(0, 1fr); align-items: start; min-height: 0; padding-top: 210px; padding-bottom: 72px; }
+      .lp-card { grid-column: 1; justify-self: center; max-width: 440px; padding: 28px 22px 24px; }
+    }
+    @media (max-width: 380px) { .lp-card { padding: 24px 18px 20px; } .lc-row { flex-wrap: wrap; } }
+    @media (prefers-reduced-motion: reduce) { .lp-card, .no-scene .lp-card { transition: none; } .lc-submit::before { display: none; } }
+
+    /* ── home-page theme layers ── */
+    .lp-ribbon { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+    .paint-cursor { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 9996; pointer-events: none; display: block; visibility: hidden; }
+    .paint-cursor.is-live { visibility: visible; mix-blend-mode: hard-light; }
+    .lp-top, .lp-layout, .lp-skip { position: relative; z-index: 2; }
+    body::after { content: ''; position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: .5;
+      background-image: radial-gradient(rgba(17,21,20,.045) 1px, transparent 1px); background-size: 22px 22px; }
+    .fold-sunrise { --f-fill: #FDE9DB; --f-ink: #8A3A10; --f-line: #F2B48D; }
+    .fold-sky     { --f-fill: #E2EDF8; --f-ink: #1E4D78; --f-line: #9EC1E4; }
+    .fold-dusk    { --f-fill: #ECE7F7; --f-ink: #4A3A82; --f-line: #A99AD8; }
+
+    /* ── two columns: brand story | character + card ── */
+    .lp-layout { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.35fr); align-items: center; gap: clamp(16px, 3vw, 40px);
+      max-width: 1320px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px); min-height: calc(100svh - 80px); }
+    .lp-layout .lp-stage { max-width: none; margin: 0; padding: 24px 0 48px; min-height: min(760px, calc(100svh - 80px)); grid-template-columns: minmax(0, 1fr) minmax(340px, 410px); }
+    .lp-layout .lp-card { grid-column: 2; }
+    #scene { overflow: hidden; }
+    @media (max-width: 899px) { #scene { overflow: visible; } }
+    .lp-story { padding: 24px 0 48px; }
+    .ls-eyebrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 22px; font: 600 12px/1.4 'Geist Mono', monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--brand-text); }
+    .ls-badge { padding: 4px 9px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 10.5px; letter-spacing: .12em; }
+    .ls-title { margin: 0; font: 800 clamp(38px, 4.4vw, 60px)/1.02 'Sora', sans-serif; letter-spacing: -.04em; color: var(--ink); }
+    .ls-title span { color: var(--brand); background: linear-gradient(90deg, #EC5E27, #F59E45 60%, #EC5E27); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; background-size: 200% 100%; animation: lsShine 6s ease-in-out infinite; }
+    @keyframes lsShine { 50% { background-position: 100% 0; } }
+    .ls-lede { margin: 20px 0 0; max-width: 40ch; font-size: 17px; line-height: 1.6; color: var(--ink-2); }
+    .ls-steps { list-style: none; margin: 26px 0 0; padding: 0; display: grid; gap: 10px; max-width: 420px; }
+    .ls-steps li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,.7); border: 1px solid var(--f-line); backdrop-filter: blur(6px);
+      font-weight: 600; font-size: 15px; color: var(--ink); opacity: 0; transform: translateY(14px); animation: lsIn .7s cubic-bezier(.16,1,.3,1) forwards; }
+    .ls-steps li:nth-child(1) { animation-delay: .35s; } .ls-steps li:nth-child(2) { animation-delay: .5s; } .ls-steps li:nth-child(3) { animation-delay: .65s; }
+    @keyframes lsIn { to { opacity: 1; transform: none; } }
+    .ls-n { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--f-fill); color: var(--f-ink); border: 1px solid var(--f-line); font: 700 13px/1 'Sora', sans-serif; }
+    .ls-note { display: flex; align-items: center; gap: 8px; margin: 26px 0 0; font-size: 13.5px; color: var(--muted); }
+    .ls-note i { color: var(--success); font-size: 17px; }
+    .ls-legal { display: flex; gap: 18px; margin: 12px 0 0; font-size: 13px; }
+    .ls-legal a { color: var(--ink-2); text-decoration: none; padding: 6px 0; } .ls-legal a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+    /* ── passwordless card ── */
+    .lc-badge { display: inline-block; margin: 0 0 14px; padding: 5px 11px; border-radius: 999px; background: #FDE9DB; color: #8A3A10; font: 600 11px/1 'Geist Mono', monospace; letter-spacing: .12em; text-transform: uppercase; }
+    .lc-google { display: flex; align-items: center; justify-content: center; gap: 12px; height: 52px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff; color: var(--ink);
+      font: 600 15.5px/1 'Geist', sans-serif; text-decoration: none; transition: border-color .2s ease, box-shadow .2s ease, transform .25s cubic-bezier(.16,1,.3,1); }
+    .lc-google:hover { border-color: var(--ink); box-shadow: 0 10px 24px -16px rgba(17,21,20,.45); transform: translateY(-1px); }
+    .lc-or { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: var(--muted); font-size: 13px; }
+    .lc-or::before, .lc-or::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+    .lc-sent { text-align: center; padding: 8px 0 4px; }
+    .lc-sent-ic { display: inline-grid; place-items: center; width: 58px; height: 58px; border-radius: 50%; background: #E4F2EA; color: var(--success); font-size: 28px; }
+    .lc-sent h2 { margin: 14px 0 6px; font: 800 22px/1.2 'Sora', sans-serif; letter-spacing: -.02em; }
+    .lc-sent p { margin: 0; color: var(--ink-2); font-size: 15px; }
+    .lc-again { border: 0; background: none; cursor: pointer; font: inherit; margin-top: 8px; }
+    .lp-card .lc-foot { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); text-align: left; font-size: 13.5px; line-height: 1.55; }
+    :is(.lc-google, .lc-again, .ls-legal a):focus-visible { outline: 2px solid var(--brand-ui); outline-offset: 3px; }
+
+    /* ── narrower screens: stage first, story below ── */
+    @media (max-width: 1099px) {
+      .lp-layout { grid-template-columns: minmax(0, 1fr); }
+      .lp-layout .lp-stage { order: 1; }
+      .lp-story { order: 2; padding-top: 0; }
+      .ls-title { font-size: clamp(32px, 7vw, 44px); }
+    }
+    @media (min-width: 900px) and (max-width: 1099px) { .lp-layout .lp-stage { grid-template-columns: minmax(0, 1fr) minmax(340px, 410px) minmax(0, .4fr); } }
+    @media (max-width: 899px) {
+      .lp-layout { padding: 0 16px; min-height: 0; }
+      .lp-layout .lp-stage { grid-template-columns: minmax(0, 1fr); padding: 210px 0 40px; min-height: 0; }
+      .lp-layout .lp-card { grid-column: 1; }
+      .lp-story { padding-bottom: 64px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .ls-steps li { animation: none; opacity: 1; transform: none; } .ls-title span { animation: none; } }
+  </style>
+</head>
+<body>
+  <canvas id="lusionRibbonCanvas" class="lp-ribbon" aria-hidden="true"></canvas>
+  <canvas id="paintCursor" class="paint-cursor" aria-hidden="true"></canvas>
+  <header class="lp-top">
+    <a class="lp-brand" href="index.html" aria-label="Jaithraya home"><img src="https://www.jaithraya.com/logo.png" alt="" width="34" height="34">Jaithraya</a>
+    <a class="lp-join" href="index.html#join">New here? <b>Join free</b></a>
+  </header>
+
+  <div class="lp-layout">
+  <aside class="lp-story" aria-label="About Jaithraya">
+    <p class="ls-eyebrow"><span class="ls-badge">Candidate</span> The threefold path to your offer</p>
+    <p class="ls-title">The right job.<br>The right resume.<br><span>We apply.</span></p>
+    <p class="ls-lede">Jaithraya runs your U.S. job search end-to-end, built for students on the visa clock.</p>
+    <ol class="ls-steps">
+      <li class="fold-sunrise"><span class="ls-n">1</span><span>Visa-friendly jobs, matched to you every morning</span></li>
+      <li class="fold-sky"><span class="ls-n">2</span><span>A resume tailored to each role</span></li>
+      <li class="fold-dusk"><span class="ls-n">3</span><span>We apply for you, so you focus on interviews</span></li>
+    </ol>
+    <p class="ls-note"><i class="ph-fill ph-shield-check" aria-hidden="true"></i> Visa-friendly roles only. We never do anything that risks your status.</p>
+    <p class="ls-legal"><a href="https://www.jaithraya.com/privacy">Privacy</a><a href="https://www.jaithraya.com/terms">Terms</a></p>
+  </aside>
+  <main class="lp-stage" id="stage">
+    <svg id="scene" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="gBlazer" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#B9AC9F"/><stop offset=".45" stop-color="#D6CBC0"/><stop offset="1" stop-color="#C4B7AA"/></linearGradient>
+        <linearGradient id="gSleeve" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#BFB2A5"/><stop offset=".55" stop-color="#D4C9BE"/><stop offset="1" stop-color="#BBAEA1"/></linearGradient>
+        <linearGradient id="gSleeveB" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#A89A8C"/><stop offset="1" stop-color="#B7A99C"/></linearGradient>
+        <linearGradient id="gPants" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1E1A18"/><stop offset=".5" stop-color="#332C29"/><stop offset="1" stop-color="#211C1A"/></linearGradient>
+        <linearGradient id="gPantsB" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#171412"/><stop offset="1" stop-color="#241F1D"/></linearGradient>
+        <radialGradient id="gSkin" cx=".62" cy=".42" r=".7"><stop offset="0" stop-color="#FAD8BC"/><stop offset=".7" stop-color="#F0C29F"/><stop offset="1" stop-color="#E2AD88"/></radialGradient>
+        <linearGradient id="gHair" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD25E"/><stop offset=".6" stop-color="#F2B42F"/><stop offset="1" stop-color="#D99A1E"/></linearGradient>
+        <linearGradient id="gBeard" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E8A04A"/><stop offset="1" stop-color="#C77A2E"/></linearGradient>
+        <linearGradient id="gCase" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A3552F"/><stop offset="1" stop-color="#7B3B1F"/></linearGradient>
+        <linearGradient id="gShoe" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E4E1DB"/></linearGradient>
+        <linearGradient id="gSuit" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#22304B"/><stop offset=".5" stop-color="#34476D"/><stop offset="1" stop-color="#2A3A5A"/></linearGradient>
+        <linearGradient id="gSleeve2" gradientUnits="userSpaceOnUse" x1="-12" y1="0" x2="12" y2="0"><stop offset="0" stop-color="#2A3A5A"/><stop offset=".55" stop-color="#3A4E77"/><stop offset="1" stop-color="#2C3C5D"/></linearGradient>
+        <linearGradient id="gPantsF" gradientUnits="userSpaceOnUse" x1="-13" y1="0" x2="13" y2="0"><stop offset="0" stop-color="#253350"/><stop offset=".55" stop-color="#33456A"/><stop offset="1" stop-color="#28375A"/></linearGradient>
+        <linearGradient id="gTie" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F47A45"/><stop offset="1" stop-color="#D9501F"/></linearGradient>
+        <radialGradient id="gFace" cx=".6" cy=".42" r=".72"><stop offset="0" stop-color="#FFDCC2"/><stop offset=".65" stop-color="#F6C6A2"/><stop offset="1" stop-color="#E9AF89"/></radialGradient>
+        <radialGradient id="gHand" cx=".6" cy=".4" r=".7"><stop offset="0" stop-color="#FFD8BD"/><stop offset="1" stop-color="#EDB590"/></radialGradient>
+        <linearGradient id="gHair2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6B4630"/><stop offset=".6" stop-color="#4E3122"/><stop offset="1" stop-color="#3A2418"/></linearGradient>
+        <linearGradient id="gShoe2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E8E5DF"/></linearGradient>
+        <linearGradient id="gShoeL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#94593A"/><stop offset="1" stop-color="#5C331E"/></linearGradient>
+        <linearGradient id="gShoeLB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#734328"/><stop offset="1" stop-color="#462817"/></linearGradient>
+      </defs>
+
+      <ellipse id="tShadow" cx="0" cy="0" rx="10" ry="2" fill="#111514" opacity=".13"/>
+      <ellipse id="tCaseShadow" cx="0" cy="0" rx="10" ry="2" fill="#111514" opacity="0"/>
+
+      <!-- briefcase (pixel-space group; drawn with its handle top at 0,0) -->
+      <g id="tCase">
+        <g id="tCaseBody">
+          <rect x="-34" y="16" width="68" height="46" rx="7" fill="url(#gCase)"/>
+          <rect x="-34" y="16" width="68" height="46" rx="7" fill="none" stroke="#5E2C16" stroke-width="1.6" opacity=".55"/>
+          <rect x="-21" y="18" width="5" height="43" rx="2" fill="#6A321B" opacity=".75"/>
+          <rect x="16" y="18" width="5" height="43" rx="2" fill="#6A321B" opacity=".75"/>
+          <rect x="-30" y="22" width="60" height="5" rx="2.5" fill="#FFFFFF" opacity=".12"/>
+        </g>
+        <g id="tLid">
+          <rect x="-35" y="9" width="70" height="12" rx="5" fill="#6E351C"/>
+          <path d="M-11 9 v-6 q0 -5 5 -5 h12 q5 0 5 5 v6" fill="none" stroke="#5A2A15" stroke-width="4" stroke-linecap="round"/>
+          <rect x="-6" y="16" width="12" height="7" rx="2" fill="#E2B048" stroke="#B9862A" stroke-width="1"/>
+        </g>
+      </g>
+
+      <!-- the character: units, origin at the hips; FEET = 154 below -->
+      <g id="tChar">
+        <g id="tHips">
+          <!-- back leg (darker: it is further away) -->
+          <g id="tLegB" transform="translate(-6 4)">
+            <line x1="0" y1="0" x2="0" y2="70" stroke="#1F2A3F" stroke-width="25" stroke-linecap="round"/>
+            <g id="tKneeB" transform="translate(0 70)">
+              <line x1="0" y1="0" x2="0" y2="60" stroke="#1F2A3F" stroke-width="22" stroke-linecap="round"/>
+              <g id="tFootB" transform="translate(0 64)">
+                <path d="M-12 -7 Q-12 -14 -3 -14 H5 Q19 -13 26 -3 Q30 3 26 5 H-9 Q-13 5 -13 0 Z" fill="url(#gShoeLB)"/>
+                <path d="M-13 3 Q7 8 29 3 L29 6 Q7 11 -13 6 Z" fill="#24150D"/>
+                <path d="M6 -11 Q15 -9 20 -4" stroke="#FFFFFF" stroke-opacity=".22" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+              </g>
+            </g>
+          </g>
+          <!-- front leg -->
+          <g id="tLegF" transform="translate(9 4)">
+            <line x1="0" y1="0" x2="0" y2="70" stroke="url(#gPantsF)" stroke-width="26" stroke-linecap="round"/>
+            <line x1="5" y1="6" x2="5" y2="64" stroke="#FFFFFF" stroke-opacity=".08" stroke-width="5" stroke-linecap="round"/>
+            <g id="tKneeF" transform="translate(0 70)">
+              <line x1="0" y1="0" x2="0" y2="60" stroke="#2C3B57" stroke-width="23" stroke-linecap="round"/>
+              <g id="tFootF" transform="translate(0 64)">
+                <path d="M-12 -7 Q-12 -15 -3 -15 H5 Q21 -14 28 -3 Q32 3 28 6 H-9 Q-13 6 -13 0 Z" fill="url(#gShoeL)"/>
+                <path d="M-13 4 Q8 9 31 4 L31 7 Q8 12 -13 7 Z" fill="#2A1810"/>
+                <path d="M-1 -13 L7 -11 M0 -10 L8 -8" stroke="#2A1810" stroke-width="1.4" stroke-linecap="round"/>
+                <path d="M8 -12 Q18 -10 23 -4" stroke="#FFFFFF" stroke-opacity=".38" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+                <path d="M-10 -12 Q-11 -6 -9 -2" stroke="#FFFFFF" stroke-opacity=".18" stroke-width="2" fill="none" stroke-linecap="round"/>
+              </g>
+            </g>
+          </g>
+          <!-- pelvis -->
+          <path d="M-24 -6 H28 Q31 10 18 16 H-14 Q-27 10 -24 -6 Z" fill="#26344E"/>
+
+          <!-- torso: arms live inside it so they follow leans -->
+          <g id="tTorso">
+            <g id="tArmB" transform="translate(-22 -100)">
+              <line x1="0" y1="0" x2="0" y2="52" stroke="#25334F" stroke-width="20" stroke-linecap="round"/>
+              <g id="tElbowB" transform="translate(0 52)">
+                <line x1="0" y1="0" x2="0" y2="40" stroke="#25334F" stroke-width="17" stroke-linecap="round"/>
+                <line x1="0" y1="42" x2="0" y2="45" stroke="#E9E6E0" stroke-width="15" stroke-linecap="round"/>
+                <g id="tHandB" transform="translate(0 56)">
+                  <path d="M-7 -9 Q-9 -2 -8 5 Q-7 12 -2 14 Q3 15.5 6 12 Q8.5 8 8 1 Q7.5 -6 5 -9 Z" fill="#E1A882"/>
+                  <path d="M-5 5 Q0 7 5 5 M-5.5 9 Q0 11 5 8.5" stroke="#C88C67" stroke-width="1.1" fill="none" stroke-linecap="round" opacity=".8"/>
+                  <path d="M5 -5 Q10.5 -3 10.5 3 Q10.5 7 7.5 7 Q5.8 6 5.8 2 Z" fill="#E8B18C"/>
+                </g>
+              </g>
+            </g>
+
+            <!-- jacket -->
+            <path d="M-31 -103 Q-42 -98 -39 -72 Q-35 -48 -33 -32 Q-35 -6 -33 4 Q-30 15 -16 16 L22 16 Q36 15 38 4 Q39 -6 37 -32 Q38 -50 41 -72 Q43 -98 32 -103 Q16 -112 0 -112 Q-16 -112 -31 -103 Z" fill="url(#gSuit)"/>
+            <path d="M-31 -103 Q-42 -98 -39 -72 Q-35 -48 -33 -32 Q-35 -6 -33 4 Q-30 15 -16 16 L-10 16 Q-24 -30 -21 -101 Z" fill="#000" opacity=".12"/>
+            <path d="M-29 -100 Q-24 -92 -24 -80 M31 -100 Q27 -92 27 -80" stroke="#1B2740" stroke-width="1.6" fill="none" opacity=".5"/>
+            <path d="M-33 -30 Q2 -26 37 -30" stroke="#1B2740" stroke-width="1.2" fill="none" opacity=".25"/>
+            <!-- shirt, tie, lapels -->
+            <path d="M-6 -111 L18 -111 L14 -58 L6 -50 L-2 -58 Z" fill="#FBFAF8"/>
+            <path d="M2 -106 L10 -106 L12 -98 L9 -94 L12 -62 L6 -54 L0 -62 L3 -94 L0 -98 Z" fill="url(#gTie)"/>
+            <path d="M-8 -110 L5 -60 L-1 -46 L-20 -96 Q-16 -106 -8 -110 Z" fill="#3A4D74"/>
+            <path d="M20 -110 L7 -60 L13 -46 L32 -96 Q28 -106 20 -110 Z" fill="#3A4D74"/>
+            <path d="M-17 -82 L-7 -84 L-8 -78 L-17 -77 Z" fill="#FFFFFF"/>
+            <circle cx="6" cy="-34" r="2.6" fill="#16203A"/>
+            <circle cx="6" cy="-18" r="2.6" fill="#16203A"/>
+
+            <!-- neck + head -->
+            <path d="M-2 -124 H14 V-104 Q6 -98 -2 -104 Z" fill="#E7B28C"/>
+            <g id="tHead" transform="translate(6 -116)">
+              <g id="tHeadInner">
+                <!-- ear -->
+                <ellipse cx="-32" cy="-40" rx="8" ry="11" fill="#F0BE98"/>
+                <path d="M-33 -46 Q-28 -40 -33 -34" stroke="#D99B78" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+                <!-- face -->
+                <path d="M-36 -54 Q-36 -92 4 -92 Q44 -92 46 -52 Q48 -24 34 -8 Q22 4 6 4 Q-16 4 -28 -10 Q-37 -22 -36 -54 Z" fill="url(#gFace)"/>
+                <!-- cheeks -->
+                <ellipse cx="36" cy="-24" rx="7" ry="4.2" fill="#F48C7C" opacity=".35"/>
+                <ellipse cx="6" cy="-24" rx="6" ry="3.6" fill="#F48C7C" opacity=".22"/>
+                <!-- eyes: white, iris + pupil (moves together), two highlights -->
+                <g id="tEyes">
+                  <g class="t-eye" transform="translate(16 -46)">
+                    <ellipse rx="7.4" ry="8.6" fill="#FFFFFF"/>
+                    <g class="t-pupil"><circle r="5.2" fill="#6B4226"/><circle r="2.9" fill="#1C120C"/></g>
+                    <g class="t-glint"><circle cx="1.8" cy="-2.2" r="1.7" fill="#FFFFFF"/><circle cx="-1.6" cy="1.8" r=".8" fill="#FFFFFF" opacity=".8"/></g>
+                    <path d="M-7.6 -3 Q0 -10.5 7.6 -3" stroke="#2A1A12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+                  </g>
+                  <g class="t-eye" transform="translate(36 -46)">
+                    <ellipse rx="6.6" ry="8.2" fill="#FFFFFF"/>
+                    <g class="t-pupil"><circle r="4.9" fill="#6B4226"/><circle r="2.7" fill="#1C120C"/></g>
+                    <g class="t-glint"><circle cx="1.7" cy="-2.1" r="1.6" fill="#FFFFFF"/><circle cx="-1.5" cy="1.7" r=".75" fill="#FFFFFF" opacity=".8"/></g>
+                    <path d="M-6.8 -3 Q0 -10 6.8 -3" stroke="#2A1A12" stroke-width="2.1" fill="none" stroke-linecap="round"/>
+                  </g>
+                </g>
+                <path id="tBrowB" d="M8 -61 Q16 -66 24 -62" stroke="#3B2417" stroke-width="3.6" fill="none" stroke-linecap="round"/>
+                <path id="tBrowF" d="M30 -62 Q37 -66 43 -61" stroke="#3B2417" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+                <!-- nose + smile -->
+                <path d="M40 -40 Q45 -33 39.5 -29" stroke="#D99B78" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+                <path d="M20 -19 Q29 -11 39 -18" stroke="#8C3D2E" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+                <path d="M23 -17.5 Q29 -13.5 36 -17" fill="#FFFFFF" opacity=".9"/>
+                <!-- hair: soft quiff with a highlight -->
+                <path d="M-38 -50 Q-44 -98 6 -101 Q40 -102 50 -70 Q51 -60 46 -56 Q42 -74 22 -76 Q4 -78 -10 -70 Q-22 -62 -26 -48 Q-28 -40 -30 -34 Q-38 -38 -38 -50 Z" fill="url(#gHair2)"/>
+                <path d="M-6 -86 Q14 -114 48 -90 Q54 -84 52 -74 Q36 -90 16 -86 Q4 -84 -6 -86 Z" fill="url(#gHair2)"/>
+                <path d="M6 -94 Q24 -102 40 -92" stroke="#A77B5C" stroke-width="3" fill="none" stroke-linecap="round" opacity=".55"/>
+              </g>
+            </g>
+
+            <!-- front arm -->
+            <g id="tArmF" transform="translate(23 -100)">
+              <line x1="0" y1="0" x2="0" y2="52" stroke="url(#gSleeve2)" stroke-width="21" stroke-linecap="round"/>
+              <g id="tElbowF" transform="translate(0 52)">
+                <line x1="0" y1="0" x2="0" y2="40" stroke="#33466B" stroke-width="18" stroke-linecap="round"/>
+                <line x1="0" y1="42" x2="0" y2="45" stroke="#FBFAF8" stroke-width="16" stroke-linecap="round"/>
+                <g id="tHandF" transform="translate(0 56)">
+                  <path d="M-7.5 -9.5 Q-9.8 -2 -8.6 5.5 Q-7.5 13 -2 15 Q3.5 16.5 6.6 12.6 Q9.2 8.5 8.6 1 Q8 -6.5 5.4 -9.5 Z" fill="url(#gHand)"/>
+                  <path d="M-5.5 5.5 Q0 7.6 5.5 5.4 M-6 9.6 Q0 12 5.6 9.2" stroke="#D89C77" stroke-width="1.2" fill="none" stroke-linecap="round" opacity=".85"/>
+                  <path d="M5.4 -5.5 Q11.5 -3.4 11.5 3 Q11.5 7.6 8.2 7.6 Q6.2 6.6 6.2 2.2 Z" fill="#F4C7A4"/>
+                  <path d="M-6 -2 Q-7 1 -6.4 4" stroke="#FFFFFF" stroke-opacity=".25" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+                </g>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+
+      <g id="tSparks" opacity="0">
+        <path d="M0 -14 v-10 M10 -10 l7 -7 M14 0 h10 M-10 -10 l-7 -7 M-14 0 h-10 M8 9 l6 6" stroke="#EC5E27" stroke-width="3" stroke-linecap="round"/>
+      </g>
+    </svg>
+
+    <section class="lp-card" id="card" aria-labelledby="lcTitle">
+      <p class="lc-badge">Welcome</p>
+      <h1 class="lc-title" id="lcTitle">Sign in to Jaithraya</h1>
+      <p class="lc-sub">No password needed. Continue with Google, or we&rsquo;ll email you a sign-in link.</p>
+
+      <a class="lc-google" id="googleBtn" href="https://app.jaithraya.com/" data-track="login_google">
+        <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+        Continue with Google
+      </a>
+
+      <div class="lc-or" role="separator"><span>or</span></div>
+
+      <form id="loginForm" novalidate>
+        <p class="lc-alert" id="formAlert" role="alert" hidden></p>
+        <div class="fld" id="fldEmail">
+          <input id="email" name="email" type="email" inputmode="email" autocomplete="email" required placeholder=" " aria-describedby="emailErr">
+          <label for="email">Your email address</label>
+          <i class="ph ph-envelope-simple fld-ic" aria-hidden="true"></i>
+          <p class="fld-err" id="emailErr" hidden></p>
+        </div>
+        <button type="submit" class="lc-submit" id="submitBtn"><span class="lc-submit-label">Email me a sign-in link</span></button>
+      </form>
+
+      <div class="lc-sent" id="sentState" hidden>
+        <span class="lc-sent-ic" aria-hidden="true"><i class="ph-fill ph-envelope-open"></i></span>
+        <h2>Check your inbox</h2>
+        <p>We sent a sign-in link to <b id="sentTo"></b>. It expires in 15 minutes.</p>
+        <button type="button" class="lc-link lc-again" id="useOther">Use a different email</button>
+      </div>
+
+      <p class="lc-foot">New to Jaithraya? Either option creates your account, and you&rsquo;ll pick a plan next.</p>
+    </section>
+  </main>
+  </div>
+
+  <button type="button" class="lp-skip" id="skipBtn" hidden>Skip intro <i class="ph-bold ph-fast-forward" aria-hidden="true"></i></button>
+
+  <script>
+    window.JT_AUTH = {
+      GOOGLE_URL: 'https://app.jaithraya.com/',      // your Google sign-in start URL
+      MAGIC_LINK_ENDPOINT: '',                        // POST { email } → sends the sign-in link. Empty: hand over to the app.
+      REDIRECT: 'https://app.jaithraya.com/',
+    };
+  </script>
+
+  <script>
+    (function setupLoginForm() {
+      const $ = (id) => document.getElementById(id);
+      const cfg = window.JT_AUTH || {};
+      const form = $('loginForm'), email = $('email'), alertBox = $('formAlert'), btn = $('submitBtn');
+      const scene = () => window.__jtScene;
+      const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+      $('googleBtn').href = cfg.GOOGLE_URL || 'https://app.jaithraya.com/';
+      $('googleBtn').addEventListener('click', () => scene()?.cheer());
+      const setErr = (msg) => { $('fldEmail').classList.toggle('has-error', !!msg); email.setAttribute('aria-invalid', msg ? 'true' : 'false'); $('emailErr').textContent = msg || ''; $('emailErr').hidden = !msg; };
+      const showAlert = (msg, info) => { alertBox.textContent = msg || ''; alertBox.hidden = !msg; alertBox.classList.toggle('is-info', !!info); };
+      email.addEventListener('focus', () => scene()?.mode('email'));
+      email.addEventListener('input', () => { scene()?.nod(); if (email.getAttribute('aria-invalid') === 'true') setErr(''); });
+      email.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== email) scene()?.mode('idle'); }, 0));
+      const busy = (on) => { btn.disabled = on; btn.innerHTML = on ? '<span class="spin" aria-hidden="true"></span><span class="lc-submit-label">Sending your link\u2026</span>' : '<span class="lc-submit-label">Email me a sign-in link</span>'; };
+      const sent = (addr) => { form.hidden = true; document.querySelector('.lc-or').hidden = true; $('googleBtn').hidden = true; $('sentTo').textContent = addr; $('sentState').hidden = false; scene()?.cheer(); };
+      $('useOther').addEventListener('click', () => { $('sentState').hidden = true; form.hidden = false; document.querySelector('.lc-or').hidden = false; $('googleBtn').hidden = false; scene()?.mode('idle'); email.focus(); email.select(); });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault(); showAlert('');
+        const v = email.value.trim();
+        if (!v) { setErr('Enter your email.'); scene()?.shake(); email.focus(); return; }
+        if (!EMAIL_RE.test(v)) { setErr('Enter a valid email, like name@example.com.'); scene()?.shake(); email.focus(); return; }
+        setErr('');
+        if (!cfg.MAGIC_LINK_ENDPOINT) {
+          showAlert('Taking you to the Jaithraya app to send your sign-in link\u2026', true);
+          scene()?.cheer();
+          setTimeout(() => { window.location.href = cfg.REDIRECT || 'https://app.jaithraya.com/'; }, 1400);
+          return;
+        }
+        busy(true);
+        try {
+          const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 12000);
+          const res = await fetch(cfg.MAGIC_LINK_ENDPOINT, { method: 'POST', credentials: 'include', signal: ctrl.signal, headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ email: v }) });
+          clearTimeout(to); busy(false);
+          if (res.ok) { sent(v); return; }
+          scene()?.shake();
+          showAlert(res.status === 429 ? 'Too many requests. Wait a minute, then try again.' : 'We couldn\u2019t send the link right now. Please try again.');
+        } catch (_) { busy(false); scene()?.shake(); showAlert('We couldn\u2019t reach the server. Check your connection and try again.'); }
+      });
+    })();
+  </script>
+
+  <!-- ───────────────── safety net: never hide the form ───────────────── -->
+  <script>
+    (function () {
+      const reveal = () => { if (window.__jtSceneReady) return; document.documentElement.classList.add('no-scene'); document.getElementById('card').classList.add('is-shown'); };
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { /* scene shows the final pose instantly */ }
+      setTimeout(reveal, 9000);                         // the 3D module failed to load or start
+      window.__jtRevealCard = reveal;
+    })();
+  </script>
+
+  <!-- ───────────────── the cartoon character (SVG rig) ───────────────── -->
+  <script>
+    (function setupToon() {
+      const stage = document.getElementById('stage'), svg = document.getElementById('scene'), card = document.getElementById('card'), skipBtn = document.getElementById('skipBtn');
+      if (!svg || !svg.getScreenCTM) { window.__jtStartToonFailed = true; return; }
+      let active = false;
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const $ = (id) => document.getElementById(id);
+      const R = {
+        char: $('tChar'), hips: $('tHips'), torso: $('tTorso'), head: $('tHead'), headIn: $('tHeadInner'),
+        legB: $('tLegB'), kneeB: $('tKneeB'), footB: $('tFootB'), legF: $('tLegF'), kneeF: $('tKneeF'), footF: $('tFootF'),
+        armB: $('tArmB'), elbowB: $('tElbowB'), handB: $('tHandB'), armF: $('tArmF'), elbowF: $('tElbowF'), handF: $('tHandF'),
+        eyes: $('tEyes'), pupils: [...svg.querySelectorAll('.t-pupil')], glints: [...svg.querySelectorAll('.t-glint')], eyeEls: [...svg.querySelectorAll('.t-eye')],
+        browB: $('tBrowB'), browF: $('tBrowF'),
+        caseG: $('tCase'), lid: $('tLid'), shadow: $('tShadow'), caseShadow: $('tCaseShadow'), sparks: $('tSparks'),
+      };
+      const FEET = 154, CHAR_H = 372;
+      const tr = (el, x, y, r = 0) => el.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${r.toFixed(2)})`);
+
+      // ── poses (degrees / units). Every pose is complete, so any two can be blended. ──
+      const STAND = { x: 0, y: 0, lean: 0, hipY: 0, torso: 0, head: 0, px: 1, py: 0,
+        bA: 7, bE: -8, fA: -5, fE: -10, fW: 0, bH: 3, bK: 2, fH: -3, fK: 3, toeF: 0, toeB: 0, brow: 0, armBFront: 0 };
+      const KEYS = Object.keys(STAND);
+      const P = (o) => ({ ...STAND, ...o });
+      const mix = (a, b, u) => { const o = {}; for (const k of KEYS) o[k] = a[k] + (b[k] - a[k]) * u; return o; };
+      const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+      const seg = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+      const ease = (u) => u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+      const easeOut = (u) => 1 - Math.pow(1 - u, 3);
+
+      const CROUCH = P({ hipY: 70, torso: 30, head: 12, fH: -80, fK: 118, bH: -66, bK: 112, fA: -42, fE: -8, bA: 24, bE: -24, px: 2.4, py: 2 });
+      const SNAP = P({ fA: -112, fE: -118, fW: -10, bA: 12, bE: -14, head: 7, px: 1.8, py: -1.5, brow: -2 });
+      const PREP = P({ hipY: 16, torso: 10, fH: -26, fK: 44, bH: -24, bK: 42, fA: 34, bA: 34, fE: -18, bE: -18 });
+      const AIR = P({ y: -44, fH: -38, fK: 22, bH: 34, bK: 26, fA: -96, fE: -8, bA: 86, bE: 8, head: -6, py: -2, brow: -3 });
+      const LAND = P({ hipY: 16, fH: -26, fK: 34, bH: 24, bK: 30, fA: -88, fE: -10, bA: 78, bE: 8, torso: 3, head: -3 });
+      const CROSS = P({ lean: 3, fA: -9, fE: -18, fW: 6, bA: 21, bE: -12, head: -4, fH: -11, fK: 7, toeF: 5, bH: 6, bK: 3, px: -0.5, py: 0 });
+      const COVER = P({ fA: -150, fE: -104, bA: -150, bE: 36, head: 9, armBFront: 1, px: 0, py: 1 });
+      const PEEK = P({ fA: -150, fE: -104, bA: -118, bE: 4, head: 6, armBFront: 1, px: 2.5, py: 1 });
+      const CHEER = P({ fA: -172, fE: -8, bA: -166, bE: -14, head: -8, py: -2.5, brow: -4 });
+
+      const walkPose = (phi, carrying) => {
+        const s = Math.sin(phi), c = Math.cos(phi);
+        return P({ hipY: -3.5 * Math.cos(2 * phi) + 1, torso: 3, head: 1.5 * Math.sin(2 * phi),
+          fH: -27 * s, fK: 5 + 40 * Math.max(0, c), bH: 27 * s, bK: 5 + 40 * Math.max(0, -c),
+          fA: carrying ? 7 * s - 2 : 24 * s, fE: carrying ? -4 : -14, bA: -24 * s + 4, bE: -14, px: 2.2 });
+      };
+
+      // ── layout: pixel positions from the card ──
+      let W = 1, H = 1, S = 1, mobile = false;
+      const L = { ground: 0, x0: -200, xStop: 0, leanX: 0, ready: false };
+      function layout() {
+        W = stage.clientWidth; H = stage.clientHeight;
+        svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+        mobile = window.innerWidth < 900;
+        const cr = { left: card.offsetLeft, top: card.offsetTop, w: card.offsetWidth, h: card.offsetHeight };
+        S = mobile ? clamp(W * 0.44, 150, 200) / CHAR_H : clamp(window.innerHeight * 0.42, 300, 440) / CHAR_H;
+        L.ground = mobile ? cr.top + 2 : cr.top + cr.h - 4;
+        if (mobile) { L.xStop = cr.left + 84 * S; L.leanX = L.xStop; }
+        else { L.leanX = cr.left - 78 * S; L.xStop = L.leanX - 150 * S; }
+        L.x0 = Math.min(-80 * S, L.xStop - 260 * S);
+        L.landX = cr.left + cr.w / 2;
+        L.ready = true;
+      }
+
+      // ── intro timeline (seconds): walk in → wind up → throw → the case flies, lands and bursts open → the form springs out ──
+      const T = { walkEnd: 1.3, wind: 1.75, throwEnd: 1.95, release: 1.9, flight: 0.75, bounce: 0.2, pop: 2.92, yes: 3.4, step: 3.95, end: 4.05 };
+      T.land = T.release + T.flight;
+      const STRIDE = 120;                                      // units per walk cycle
+      const phiAt = (x) => ((x - L.x0) / (STRIDE * S)) * Math.PI * 2;
+      const finalPose = () => mobile ? { ...CROSS, x: L.leanX, lean: 0 } : { ...CROSS, x: L.leanX };
+
+      const WIND = P({ torso: -12, fA: 72, fE: -34, bA: -38, bE: -22, fH: -26, fK: 12, bH: 18, bK: 10, head: -5, px: 2.6, py: -1.2, brow: -1 });
+      const THROW = P({ torso: 18, fA: -152, fE: -6, fW: -20, bA: 42, bE: -12, fH: -32, fK: 20, bH: 32, bK: 22, toeB: 22, head: -8, px: 3.2, py: -2.6, brow: -3 });
+      const FOLLOW = P({ torso: 8, fA: -96, fE: -22, bA: 22, bE: -14, fH: -22, fK: 14, bH: 20, bK: 14, head: -4, px: 3.2, py: -1.6 });
+      const YES = P({ fA: -128, fE: -52, fW: -18, bA: 16, bE: -20, head: -8, px: 1.6, py: -2.4, brow: -3, hipY: -2, torso: -3 });
+      function introPose(t) {
+        if (t < T.walkEnd) { const x = L.x0 + (L.xStop - L.x0) * (t / T.walkEnd); return { ...walkPose(phiAt(x), true), x }; }
+        const xs = L.xStop, at = (p) => ({ ...p, x: xs });
+        const walkLast = { ...walkPose(phiAt(xs), true), x: xs };
+        if (t < T.wind) return mix(walkLast, at(WIND), ease(seg(t, T.walkEnd, T.wind)));
+        if (t < T.throwEnd) return mix(at(WIND), at(THROW), easeOut(seg(t, T.wind, T.throwEnd)));
+        if (t < T.pop) {                                          // follow-through, eyes on the flying case
+          const p = mix(at(THROW), at(FOLLOW), ease(seg(t, T.throwEnd, T.throwEnd + 0.35)));
+          const u = seg(t, T.release, T.land); p.px = 3.2; p.py = -2.6 + 4.2 * u;
+          return p;
+        }
+        if (t < T.yes) { const u = seg(t, T.pop, T.yes); const p = mix(at(FOLLOW), at(YES), easeOut(clamp(u * 2.2, 0, 1))); p.y = -Math.sin(clamp(u * 1.6, 0, 1) * Math.PI) * 14; return p; }
+        if (t < T.step) {
+          const u = seg(t, T.yes, T.step), x = xs + (L.leanX - xs) * ease(u);
+          const base = mix({ ...YES, x }, { ...finalPose(), x }, ease(u));
+          if (Math.abs(L.leanX - xs) < 2) return base;
+          return mix(base, { ...walkPose(phiAt(x) * 1.3, false), x }, Math.sin(u * Math.PI) * 0.6);
+        }
+        return finalPose();
+      }
+
+      // ── apply a pose ──
+      let armBInFront = false;
+      function apply(p, t) {
+        const breathe = reduced ? 0 : Math.sin(t * 2.2) * 0.9;
+        R.char.setAttribute('transform', `translate(${p.x.toFixed(2)} ${(L.ground + p.y * S).toFixed(2)}) rotate(${p.lean.toFixed(2)}) scale(${S.toFixed(4)}) translate(0 ${-FEET})`);
+        R.hips.setAttribute('transform', `translate(0 ${(p.hipY).toFixed(2)})`);
+        R.torso.setAttribute('transform', `rotate(${p.torso.toFixed(2)} 0 4) translate(0 ${(-breathe * 0.6).toFixed(2)})`);
+        tr(R.head, 6, -116, p.head);
+        tr(R.armB, -22, -100, p.bA); tr(R.elbowB, 0, 52, p.bE);
+        tr(R.armF, 23, -100, p.fA); tr(R.elbowF, 0, 52, p.fE); tr(R.handF, 0, 56, p.fW);
+        tr(R.legB, -6, 4, p.bH); tr(R.kneeB, 0, 70, p.bK); tr(R.footB, 0, 64, -(p.bH + p.bK) + p.toeB);
+        tr(R.legF, 9, 4, p.fH); tr(R.kneeF, 0, 70, p.fK); tr(R.footF, 0, 64, -(p.fH + p.fK) + p.toeF);
+        R.pupils.forEach((el) => el.setAttribute('transform', `translate(${p.px.toFixed(2)} ${p.py.toFixed(2)})`));
+        R.glints.forEach((el) => el.setAttribute('transform', `translate(${p.px.toFixed(2)} ${p.py.toFixed(2)})`));
+        R.browB.setAttribute('transform', `translate(0 ${p.brow.toFixed(2)})`); R.browF.setAttribute('transform', `translate(0 ${p.brow.toFixed(2)})`);
+        // the back arm comes in front of the face when covering the eyes
+        const wantFront = p.armBFront > 0.5;
+        if (wantFront !== armBInFront) { armBInFront = wantFront; if (wantFront) R.torso.appendChild(R.armB); else R.torso.insertBefore(R.armB, R.torso.firstChild); }
+        // ground shadow follows the feet; shrinks in the air
+        const lift = clamp(-p.y / 60, 0, 1);
+        R.shadow.setAttribute('cx', (p.x + 6 * S).toFixed(1)); R.shadow.setAttribute('cy', (L.ground + 2).toFixed(1));
+        R.shadow.setAttribute('rx', (62 * S * (1 - lift * 0.35)).toFixed(1)); R.shadow.setAttribute('ry', (8 * S * (1 - lift * 0.35)).toFixed(1));
+      }
+
+      // ── briefcase: hangs from the hand, then is set down ──
+      const pt = svg.createSVGPoint();
+      const handPos = () => { pt.x = 0; pt.y = 0; return pt.matrixTransform(R.handF.getCTM()); };
+      let caseState = 'carried', caseX = 0, caseY = 0, caseScale = 1, lidOpen = 0, caseRot = 0;
+      const CASE_C = 38;                                        // case centre below its handle top (units)
+      const fly = { x0: 0, y0: 0, vx: 0, vy: 0, g: 0, tx: 0, ty: 0 };
+      function drawCase() {
+        if (caseState === 'carried') { const h = handPos(); caseX = h.x; caseY = h.y - 4 * S; caseRot = 0; }
+        R.caseG.setAttribute('transform', `translate(${caseX.toFixed(2)} ${caseY.toFixed(2)}) scale(${(S * caseScale).toFixed(4)}) rotate(${caseRot.toFixed(2)} 0 ${CASE_C})`);
+        R.caseG.style.display = caseScale <= 0.01 ? 'none' : '';
+        R.lid.setAttribute('transform', `rotate(${(-120 * lidOpen).toFixed(2)} -35 9)`);
+        const onGround = caseState === 'ground' && caseScale > 0.01;
+        const airK = caseState === 'flying' ? clamp(1 - (L.ground - (caseY + 62 * S)) / (260 * S), 0.25, 1) : 1;
+        R.caseShadow.setAttribute('opacity', (caseState === 'flying' || onGround) ? (0.13 * caseScale * airK).toFixed(3) : '0');
+        R.caseShadow.setAttribute('cx', caseX.toFixed(1)); R.caseShadow.setAttribute('cy', (L.ground + 2).toFixed(1));
+        R.caseShadow.setAttribute('rx', (40 * S * caseScale * airK).toFixed(1)); R.caseShadow.setAttribute('ry', (5 * S * airK).toFixed(1));
+      }
+      function releaseCase() {
+        if (caseState !== 'carried') return;
+        const h = handPos();
+        fly.x0 = h.x; fly.y0 = h.y - 4 * S;                         // handle-top position at release
+        fly.tx = L.landX; fly.ty = L.ground - 62 * S;               // handle-top position when it lands on the ground line
+        const Tf = T.flight; fly.g = 3400 * S;                      // px/s² scaled with the character
+        fly.vx = (fly.tx - fly.x0) / Tf;
+        fly.vy = (fly.ty - fly.y0 - 0.5 * fly.g * Tf * Tf) / Tf;
+        caseState = 'flying';
+      }
+      function stepCase(t) {
+        if (caseState === 'flying') {
+          const k = clamp(t - T.release, 0, T.flight);
+          caseX = fly.x0 + fly.vx * k; caseY = fly.y0 + fly.vy * k + 0.5 * fly.g * k * k;
+          caseRot = 360 * (k / T.flight);                      // one full spin, lands upright
+          if (t >= T.land) { caseState = 'ground'; caseX = fly.tx; caseY = fly.ty; caseRot = 0; }
+        } else if (caseState === 'ground') {
+          const u = seg(t, T.land, T.land + T.bounce);
+          caseY = fly.ty - Math.sin(u * Math.PI) * 16 * S * (1 - u * 0.4);   // small bounce
+          caseRot = Math.sin(u * Math.PI * 2) * 6 * (1 - u);                  // wobble
+        }
+      }
+      const groundCaseY = () => L.ground - 62 * S;
+
+      // ── state ──
+      let phase = 'intro', clock0 = performance.now(), cur = null, cardShown = false, snapped = false, sparkT = -1;
+      let modeName = 'idle', shakeT = -9, nodT = -9, cheerT = -9, blinkNext = 1.6, blinkT = -9;
+      const pointer = { x: null, y: null };
+      const now = () => (performance.now() - clock0) / 1000;
+
+      function showCard(fast) {
+        if (cardShown) return; cardShown = true; skipBtn.hidden = true;
+        const cr = card.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+        const dx = caseX + sr.left - (cr.left + cr.width / 2), dy = caseY + 40 * S + sr.top - (cr.top + cr.height / 2);
+        card.classList.add('is-shown');
+        if (fast || reduced) { card.style.transform = ''; card.style.opacity = ''; return; }
+        popAnim = { dx, dy, h: card.offsetHeight };     // played frame by frame in frame() (same clock as the character)
+      }
+      // card pop keyframes, measured from the reference (spec rows 12a–12d); times are fractions of 1.083 s
+      let popAnim = null;
+      const POP = { dur: 1.083, times: [0, 0.154, 0.31, 0.462, 0.616, 0.74, 0.909, 1],
+        scale: [0.02, 0.52, 1.14, 1.04, 1, 1, 1, 1], rotX: [0, -28, -88, -20, 0, 0, 0, 0],
+        fx: [1, 0.79, 0.55, 0.16, 0, 0, 0, 0], fy: [null, -0.685, -0.672, -0.33, -0.02, -0.07, -0.004, 0],
+        ease: [(u) => u, (u) => u * u, easeOut, easeOut, easeOut, ease, easeOut] };
+      function drawPop(t) {
+        if (!popAnim) return;
+        const u = clamp((t - T.pop) / POP.dur, 0, 1);
+        let i = 0; while (i < POP.times.length - 2 && u > POP.times[i + 1]) i++;
+        const k = POP.ease[i](clamp((u - POP.times[i]) / (POP.times[i + 1] - POP.times[i]), 0, 1));
+        const lerp = (arr) => arr[i] + (arr[i + 1] - arr[i]) * k;
+        const rise = mobile ? 0.3 : 0.35;                 // the card launches from the case on the ground: keep the overshoot on screen
+        const fy = POP.fy.map((v, j) => (j === 0 ? popAnim.dy / popAnim.h : v * rise));
+        const sc = lerp(POP.scale), rx = lerp(POP.rotX), x = popAnim.dx * lerp(POP.fx), y = popAnim.h * lerp(fy);
+        card.style.opacity = '1';
+        card.style.transform = u >= 1 ? '' : `perspective(900px) translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${sc.toFixed(4)}) rotateX(${rx.toFixed(2)}deg)`;
+        if (u >= 1) popAnim = null;
+      }
+      const focusEmail = () => { const a = document.activeElement; if (!a || a === document.body) document.getElementById('email').focus({ preventScroll: true }); };
+      function finishIntro() {
+        if (phase !== 'intro') return;
+        caseState = 'gone'; caseScale = 0;
+        showCard(true);
+        phase = 'live'; cur = finalPose(); focusEmail();
+      }
+
+      const toonScene = {
+        mode(m) { modeName = m; if (phase === 'intro' && !cardShown) finishIntro(); },
+        nod() { nodT = now(); }, shake() { shakeT = now(); }, cheer() { cheerT = now(); modeName = 'cheer'; },
+      };
+      skipBtn.addEventListener('click', () => { if (active) finishIntro(); });
+      window.addEventListener('keydown', (e) => { if (active && phase === 'intro' && e.key !== 'Tab') finishIntro(); }, { passive: true });
+      stage.addEventListener('pointerdown', () => { if (active && phase === 'intro' && now() > 0.6) finishIntro(); });
+      window.addEventListener('pointermove', (e) => { const sr = stage.getBoundingClientRect(); pointer.x = e.clientX - sr.left; pointer.y = e.clientY - sr.top; }, { passive: true });
+
+      // eyes + head towards a point on screen
+      function lookAt(px, py, p, k = 1) {
+        const hx = p.x + 30 * S, hy = L.ground + (p.y - FEET - 160) * S;
+        p.px = clamp((px - hx) / (W * 0.18), -1, 1) * 3.2 * k;
+        p.py = clamp((py - hy) / (H * 0.3), -1, 1) * 2.6 * k;
+        p.head += clamp((py - hy) / (H * 0.5), -1, 1) * 6 * k;
+      }
+      function liveTarget(t) {
+        let p;
+        if (modeName === 'cover') p = { ...COVER, x: L.leanX };
+        else if (modeName === 'peek') p = { ...PEEK, x: L.leanX };
+        else if (modeName === 'cheer') p = { ...CHEER, x: L.leanX, y: -Math.max(0, Math.sin((t - cheerT) * 7)) * 22 };
+        else p = finalPose();
+        if (modeName === 'email') { const r = document.getElementById('email').getBoundingClientRect(), sr = stage.getBoundingClientRect(); lookAt(r.left - sr.left + r.width * 0.6, r.top - sr.top + r.height / 2, p); }
+        else if (modeName === 'idle' && pointer.x != null) lookAt(pointer.x, pointer.y, p, 0.7);
+        return p;
+      }
+
+      let last = performance.now(), raf = 0;
+      function frame(ts) {
+        const dt = Math.min(0.05, (ts - last) / 1000); last = ts;
+        const t = now();
+        if (!L.ready) layout();
+        let p;
+        if (phase === 'intro') {
+          p = introPose(t);
+          if (caseState === 'carried' && t >= T.release) releaseCase();
+          stepCase(t);
+          if (caseState === 'ground' && t >= T.pop - 0.1) lidOpen = easeOut(seg(t, T.pop - 0.1, T.pop + 0.06));
+          if (!snapped && t >= T.pop) { snapped = true; sparkT = t; }      // burst of sparks as the lid flies open
+          if (!cardShown && t >= T.pop) showCard(false);
+          if (caseState === 'ground' && t >= T.pop + 0.08) caseScale = Math.max(0, 1 - easeOut(seg(t, T.pop + 0.08, T.pop + 0.26)));
+          if (t >= T.end) { phase = 'live'; cur = p; focusEmail(); }
+        } else {
+          const target = liveTarget(t);
+          cur = cur ? mix(cur, target, reduced ? 1 : 1 - Math.exp(-dt * (modeName === 'cheer' ? 11 : 8))) : target;
+          p = { ...cur };
+          const ds = t - shakeT; if (ds < 0.7) p.head += Math.sin(ds * 26) * 9 * (1 - ds / 0.7);
+          const dn = t - nodT; if (dn < 0.25) p.head += Math.sin((dn / 0.25) * Math.PI) * 4;
+          if (!reduced) { p.head += Math.sin(t * 0.9) * 2.2; p.lean += Math.sin(t * 0.75) * 1.4; p.hipY += Math.sin(t * 1.5) * 1.2; p.torso += Math.sin(t * 0.75 + 1) * 1.2; }
+        }
+        apply(p, t);
+        drawCase();
+        drawPop(t);
+        // finger-snap sparks
+        if (sparkT >= 0) {
+          const u = (t - sparkT) / 0.45;
+          if (u >= 1) { R.sparks.setAttribute('opacity', '0'); sparkT = -1; }
+          else { R.sparks.setAttribute('opacity', (1 - u).toFixed(2)); R.sparks.setAttribute('transform', `translate(${caseX.toFixed(1)} ${(caseY + 6 * S).toFixed(1)}) scale(${(S * (1.4 + u * 2.2)).toFixed(3)})`); }
+        }
+        // blink
+        if (t > blinkNext) { blinkT = t; blinkNext = t + 2.4 + Math.random() * 2.8; }
+        const closed = modeName === 'cover' || t - blinkT < 0.13;
+        R.eyeEls.forEach((e, i) => { const base = i ? 'translate(36 -46)' : 'translate(16 -46)'; e.setAttribute('transform', closed ? `${base} scale(1 0.12)` : base); });
+        if (!document.hidden) raf = requestAnimationFrame(frame);
+      }
+      const start = () => { cancelAnimationFrame(raf); last = performance.now(); raf = requestAnimationFrame(frame); };
+      document.addEventListener('visibilitychange', () => { if (active && !document.hidden) start(); });
+      let rt; window.addEventListener('resize', () => { if (!active) return; clearTimeout(rt); rt = setTimeout(() => { layout(); if (phase === 'live') cur = null; }, 120); });
+
+      const begin = () => { layout(); if (reduced) finishIntro(); else { skipBtn.hidden = false; clock0 = performance.now() < 1200 ? 0 : performance.now(); } start(); };
+      window.__startToon = () => {
+        if (active) return; active = true;
+        window.__jtSceneReady = true; window.__jtScene = toonScene; svg.style.display = '';
+        (document.fonts?.ready || Promise.resolve()).then(() => requestAnimationFrame(begin));
+      };
+    })();
+  </script>
+  <!-- ───────────────── pick the character: Mixamo 3D if its files are present, otherwise the cartoon ───────────────── -->
+  <script type="module">
+    const stage = document.getElementById('stage'), card = document.getElementById('card'), skipBtn = document.getElementById('skipBtn'), svg = document.getElementById('scene');
+    const useToon = () => { document.getElementById('scene3d')?.remove(); svg.style.display = ''; window.__startToon ? window.__startToon() : window.__jtRevealCard?.(); };
+    const timeout = (ms) => new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms));
+    try {
+      const has = async (f) => { try { return (await fetch('assets/character/' + f, { method: 'HEAD', cache: 'no-store' })).ok; } catch (_) { return false; } };
+      if (!(await has('character.glb')) && !(await has('character.fbx'))) throw new Error('no Mixamo character');
+      if (!(await has('walking.fbx')) || !(await has('idle.fbx'))) throw new Error('Mixamo animations missing');
+      svg.style.display = 'none';
+      window.__jtSceneReady = true;                       // the player shows the card itself
+      const player = await Promise.race([import('./assets/character/mixamo-player.js'), timeout(8000)]);
+      await Promise.race([player.start({ stage, card, skipBtn }), timeout(15000)]);
+    } catch (e) {
+      window.__jtMixamoCancelled = true;                  // a late-arriving load must not start a second character
+      useToon();
+    }
+  </script>
+  <script src="assets/js/site-fx.js" defer></script>
+</body>
+</html>
